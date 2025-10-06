@@ -1,0 +1,1034 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="admin-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">
+          <i class="fas fa-question-circle"></i>
+          Quiz Management
+        </h1>
+        <p class="page-subtitle">Create, edit, and organize your quiz questions</p>
+      </div>
+      <div class="header-stats">
+        <div class="stat-card">
+          <div class="stat-number" id="totalQuestions">0</div>
+          <div class="stat-label">Total Questions</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-content">
+    <!-- Form Section -->
+    <div class="form-section">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <i class="fas fa-plus-circle"></i>
+            Add New Question
+          </h3>
+        </div>
+        <div class="card-body">
+          <form id="quizForm" class="modern-form">
+            <div class="form-group">
+              <label for="mainContent" class="form-label">
+                <i class="fas fa-book"></i>
+                Select MainContent
+              </label>
+              <select id="mainContent" class="form-input" required></select>
+              <div class="input-feedback" id="mcError"></div>
+            </div>
+
+            <div class="form-group">
+              <label for="questionText" class="form-label">
+                <i class="fas fa-question"></i>
+                Question
+              </label>
+              <input type="text" id="questionText" class="form-input" placeholder="Enter question..." required>
+              <div class="input-feedback" id="questionError"></div>
+            </div>
+
+            <div class="choices-section">
+              <h4 class="section-title">
+                <i class="fas fa-list-ul"></i>
+                Answer Choices
+              </h4>
+              <div id="choicesContainer">
+                {% for i in "1234" %}
+                <div class="choice-row">
+                  <div class="choice-input-group">
+                    <input type="text" id="choice{{i}}" class="form-input" placeholder="Choice {{i}}" required>
+                  </div>
+                  <div class="choice-radio-group">
+                    <label class="radio-label">
+                      <input type="radio" name="correctChoice" value="{{i}}">
+                      <span>Correct</span>
+                    </label>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" id="submitBtn">
+                <i class="fas fa-save"></i>
+                <span>Save Question</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table Section -->
+    <div class="table-section">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <i class="fas fa-list"></i>
+            Questions List
+          </h3>
+          <div class="table-actions">
+            <div class="search-box">
+              <i class="fas fa-search"></i>
+              <input type="text" id="searchInput" placeholder="Search questions...">
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-container">
+            <div class="loading-spinner" id="loadingSpinner">
+              <div class="spinner"></div>
+              <span>Loading questions...</span>
+            </div>
+            <table class="modern-table" id="questionsTable" style="display: none;">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Question</th>
+                  <th>Choices</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="questionTable"></tbody>
+            </table>
+            <div class="empty-state" id="emptyState" style="display: none;">
+              <i class="fas fa-folder-open"></i>
+              <h3>No questions found</h3>
+              <p>Start by creating your first question</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Messages -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Confirm Delete</h3>
+    </div>
+    <div class="modal-body">
+      <p>Are you sure you want to delete this question? This action cannot be undone.</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="cancelDelete">Cancel</button>
+      <button class="btn btn-danger" id="confirmDelete">
+        <i class="fas fa-trash"></i>
+        Delete Question
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+.admin-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.page-header {
+  background: linear-gradient(135deg, #203f78 0%, #1e3a8a 100%);
+  color: white;
+  padding: 2rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 20px rgba(32, 63, 120, 0.15);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.page-subtitle {
+  font-size: 1.1rem;
+  opacity: 0.9;
+  margin: 0;
+}
+
+.header-stats {
+  display: flex;
+  gap: 1rem;
+}
+
+.stat-card {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1.5rem;
+  border-radius: 8px;
+  text-align: center;
+  backdrop-filter: blur(10px);
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  opacity: 0.8;
+}
+
+.admin-content {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #203f78;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.card-body {
+  padding: 2rem;
+}
+
+.modern-form {
+  max-width: 100%;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.form-input {
+  padding: 0.875rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #203f78;
+  box-shadow: 0 0 0 3px rgba(32, 63, 120, 0.1);
+}
+
+.form-input::placeholder {
+  color: #9ca3af;
+}
+
+.input-feedback {
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  min-height: 1.25rem;
+}
+
+.input-feedback.error {
+  color: #ef4444;
+}
+
+.choices-section {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.choice-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  align-items: center;
+}
+
+.choice-row:last-child {
+  margin-bottom: 0;
+}
+
+.choice-input-group {
+  flex: 1;
+}
+
+.choice-radio-group {
+  display: flex;
+  align-items: center;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.radio-label:hover {
+  border-color: #203f78;
+  background: #f8fafc;
+}
+
+.radio-label input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.radio-label input[type="radio"]:checked + span {
+  color: #203f78;
+  font-weight: 600;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.btn {
+  padding: 0.875rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #203f78 0%, #1e3a8a 100%);
+  color: white;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(32, 63, 120, 0.3);
+}
+
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #4b5563;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: white;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.8rem;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+}
+
+.btn-info {
+  background: #3b82f6;
+  color: white;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.8rem;
+}
+
+.btn-info:hover {
+  background: #2563eb;
+}
+
+.table-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-box i {
+  position: absolute;
+  left: 0.875rem;
+  color: #9ca3af;
+  z-index: 1;
+}
+
+.search-box input {
+  padding: 0.5rem 0.875rem 0.5rem 2.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  width: 250px;
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: #203f78;
+}
+
+.table-container {
+  position: relative;
+  min-height: 400px;
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  color: #6b7280;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e5e7eb;
+  border-top: 4px solid #203f78;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.modern-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.modern-table th {
+  background: #f8fafc;
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.modern-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.modern-table tr:hover {
+  background: #f8fafc;
+}
+
+.modern-table ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  list-style: none;
+}
+
+.modern-table ul li {
+  padding: 0.25rem 0;
+  font-size: 0.875rem;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  color: #6b7280;
+  text-align: center;
+}
+
+.empty-state i {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.toast-container {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 1000;
+}
+
+.toast {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 0.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 300px;
+  animation: slideIn 0.3s ease;
+}
+
+.toast.success {
+  border-left: 4px solid #10b981;
+}
+
+.toast.error {
+  border-left: 4px solid #ef4444;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOut {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(100%); opacity: 0; }
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal {
+  background: white;
+  border-radius: 12px;
+  padding: 0;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+  padding: 1.5rem 2rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #374151;
+}
+
+.modal-body {
+  padding: 1.5rem 2rem;
+}
+
+.modal-actions {
+  padding: 1rem 2rem 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    gap: 1.5rem;
+    text-align: center;
+  }
+  
+  .choice-row {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .card-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  
+  .table-actions {
+    width: 100%;
+  }
+  
+  .search-box input {
+    width: 100%;
+  }
+  
+  .modern-table {
+    font-size: 0.8rem;
+  }
+  
+  .modern-table th,
+  .modern-table td {
+    padding: 0.75rem 0.5rem;
+  }
+}
+</style>
+
+<script>
+let currentQuizId = null;
+let currentDeleteId = null;
+
+// Toast notification system
+function showToast(message, type = 'success') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `
+    <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+    <span>${message}</span>
+  `;
+  
+  container.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.animation = 'slideOut 0.3s ease forwards';
+    setTimeout(() => {
+      container.removeChild(toast);
+    }, 300);
+  }, 3000);
+}
+
+// Form validation
+function validateForm() {
+  const mcId = document.getElementById("mainContent").value;
+  const questionText = document.getElementById("questionText").value.trim();
+  const correctChoice = document.querySelector("input[name='correctChoice']:checked");
+  let isValid = true;
+  
+  // Clear previous errors
+  document.getElementById('mcError').textContent = '';
+  document.getElementById('questionError').textContent = '';
+  
+  if (!mcId) {
+    document.getElementById('mcError').textContent = 'Please select a main content';
+    document.getElementById('mcError').className = 'input-feedback error';
+    isValid = false;
+  }
+  
+  if (!questionText) {
+    document.getElementById('questionError').textContent = 'Question text is required';
+    document.getElementById('questionError').className = 'input-feedback error';
+    isValid = false;
+  } else if (questionText.length < 5) {
+    document.getElementById('questionError').textContent = 'Question must be at least 5 characters';
+    document.getElementById('questionError').className = 'input-feedback error';
+    isValid = false;
+  }
+  
+  if (!correctChoice) {
+    showToast("Please select the correct answer", "error");
+    isValid = false;
+  }
+  
+  // Validate choices
+  let emptyChoices = 0;
+  for (let i = 1; i <= 4; i++) {
+    const text = document.getElementById("choice" + i).value.trim();
+    if (!text) emptyChoices++;
+  }
+  
+  if (emptyChoices > 0) {
+    showToast("Please fill in all answer choices", "error");
+    isValid = false;
+  }
+  
+  return isValid;
+}
+
+// Load MainContents
+async function loadMainContents() {
+  const accessToken = localStorage.getItem("access");
+  if (!accessToken) {
+    showToast("No access token found. Please log in.", 'error');
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/maincontents/", {
+      headers: { "Authorization": `Bearer ${accessToken}` }
+    });
+    
+    if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+    
+    const data = await res.json();
+    const select = document.getElementById("mainContent");
+    select.innerHTML = '<option value="">-- Select Main Content --</option>';
+    
+    data.forEach(mc => {
+      const opt = document.createElement("option");
+      opt.value = mc.id;
+      opt.textContent = mc.title;
+      select.appendChild(opt);
+    });
+  } catch (error) {
+    console.error("Error loading main contents:", error);
+    showToast("Failed to load main contents. Please try again.", 'error');
+  }
+}
+
+// Fetch or create quiz for maincontent
+async function getOrCreateQuiz(mcId) {
+  const accessToken = localStorage.getItem("access");
+
+  try {
+    // Try to get quiz for this maincontent
+    let res = await fetch(`/api/quizzes/?main_content=${mcId}`, {
+      headers: { "Authorization": `Bearer ${accessToken}` }
+    });
+    let data = await res.json();
+    if (data.length > 0) return data[0]; // reuse existing
+
+    // Create new quiz
+    res = await fetch("/api/quizzes/", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ title: "Quiz for MainContent " + mcId, main_content: mcId })
+    });
+    
+    if (!res.ok) throw new Error("Failed to create quiz");
+    
+    return await res.json();
+  } catch (error) {
+    console.error("Error getting/creating quiz:", error);
+    throw error;
+  }
+}
+
+// Save question
+async function saveQuestion(e) {
+  e.preventDefault();
+  
+  if (!validateForm()) {
+    return;
+  }
+  
+  const submitBtn = document.getElementById('submitBtn');
+  const originalText = submitBtn.innerHTML;
+  
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Saving...</span>';
+
+  try {
+    const mcId = document.getElementById("mainContent").value;
+    const questionText = document.getElementById("questionText").value.trim();
+    const correctChoice = document.querySelector("input[name='correctChoice']:checked");
+
+    const quiz = await getOrCreateQuiz(mcId);
+    currentQuizId = quiz.id;
+
+    const choices = [];
+    for (let i = 1; i <= 4; i++) {
+      const text = document.getElementById("choice" + i).value.trim();
+      if (text) {
+        choices.push({
+          text,
+          is_correct: correctChoice.value === String(i)
+        });
+      }
+    }
+
+    const accessToken = localStorage.getItem("access");
+    const res = await fetch(`/api/quizzes/${quiz.id}/add_question/`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ text: questionText, choices })
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to save question");
+    }
+
+    document.getElementById("quizForm").reset();
+    showToast("Question added successfully!");
+    loadQuestions();
+    
+  } catch (error) {
+    console.error("Error saving question:", error);
+    showToast(error.message || "Failed to save question. Please try again.", "error");
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalText;
+  }
+}
+async function loadQuestions(mcId = null) {
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const table = document.getElementById('questionsTable');
+    const emptyState = document.getElementById('emptyState');
+    const totalQuestionsEl = document.getElementById('totalQuestions');
+    
+    loadingSpinner.style.display = 'flex';
+    table.style.display = 'none';
+    emptyState.style.display = 'none';
+    
+    const accessToken = localStorage.getItem("access");
+  
+    try {
+      let url = '';
+      if (mcId) {
+        // Load questions for specific quiz
+        url = `/api/quizzes/${currentQuizId}/`;
+      } else {
+        // Load all questions
+        url = `/api/quizzes/`;  // <-- make sure your API endpoint returns all questions
+      }
+  
+      const res = await fetch(url, {
+        headers: { "Authorization": `Bearer ${accessToken}` }
+      });
+      
+      if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+      
+      let questions = [];
+      if (mcId) {
+        const quiz = await res.json();
+        questions = quiz.questions;
+      } else {
+        const quizzes = await res.json();
+        questions = quizzes.flatMap(q => q.questions || []); // assuming API returns array of all questions
+      }
+      
+      console.log(questions);
+      const tbody = document.getElementById("questionTable");
+      loadingSpinner.style.display = 'none';
+      
+      if (!questions || questions.length === 0) {
+        emptyState.style.display = 'flex';
+        totalQuestionsEl.textContent = "0";
+        return;
+      }
+  
+      table.style.display = 'table';
+      tbody.innerHTML = "";
+  
+      questions.forEach(q => {
+        const choiceList = (q.choices || []).map(c => 
+        `<li>${c.text} ${c.is_correct ? '<strong style="color: #10b981;">(✔)</strong>' : ""}</li>`
+      ).join("");
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td><strong>#${q.id}</strong></td>
+          <td>${q.text}</td>
+          <td><ul>${choiceList}</ul></td>
+          <td>
+            <a class="btn btn-info" href="/edit_quiz/${q.id}/">
+              <i class="fas fa-edit"></i> Edit
+            </a>
+            <button class="btn btn-danger" onclick="showDeleteModal(${q.id})">
+              <i class="fas fa-trash"></i> Delete
+            </button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+      
+      totalQuestionsEl.textContent = questions.length;
+      
+    } catch (error) {
+      loadingSpinner.style.display = 'none';
+      console.error("Error loading questions:", error);
+      showToast("Failed to load questions. Please try again.", 'error');
+    }
+  }
+  
+
+// Delete question
+async function deleteQuestion(id) {
+  const accessToken = localStorage.getItem("access");
+  
+  try {
+    const res = await fetch(`/api/questions/${id}/`, {
+      method: "DELETE",
+      headers: { "Authorization": `Bearer ${accessToken}` }
+    });
+    
+    if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+    
+    showToast("Question deleted successfully!");
+    loadQuestions();
+    
+  } catch (error) {
+    console.error("Error deleting question:", error);
+    showToast("Failed to delete question. Please try again.", "error");
+  }
+}
+
+// Modal functions
+function showDeleteModal(id) {
+  currentDeleteId = id;
+  document.getElementById('deleteModal').style.display = 'flex';
+}
+
+function hideDeleteModal() {
+  document.getElementById('deleteModal').style.display = 'none';
+  currentDeleteId = null;
+}
+
+// Search functionality
+function filterQuestions() {
+  const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+  const rows = document.querySelectorAll('#questionTable tr');
+  
+  rows.forEach(row => {
+    const question = row.cells[1].textContent.toLowerCase();
+    if (question.includes(searchTerm)) {
+      row.style.display = '';
+    } else {
+      row.style.display = 'none';
+    }
+  });
+}
+
+// Init
+document.addEventListener("DOMContentLoaded", async () => {
+  await loadMainContents();
+
+  const select = document.getElementById("mainContent");
+  
+  document.getElementById("quizForm").addEventListener("submit", saveQuestion);
+  document.getElementById("searchInput").addEventListener("input", filterQuestions);
+  
+  // Modal event listeners
+  document.getElementById("cancelDelete").addEventListener("click", hideDeleteModal);
+  document.getElementById("confirmDelete").addEventListener("click", function() {
+    if (currentDeleteId) {
+      deleteQuestion(currentDeleteId);
+      hideDeleteModal();
+    }
+  });
+
+  loadQuestions(); 
+  
+  // Close modal on overlay click
+  document.getElementById("deleteModal").addEventListener("click", function(e) {
+    if (e.target === this) {
+      hideDeleteModal();
+    }
+  });
+
+  // Update questions when MainContent changes
+  select.addEventListener("change", async () => {
+    const mcId = select.value;
+    if (!mcId) {
+      currentQuizId = null;
+      loadQuestions();
+      return;
+    }
+    
+    try {
+      const quiz = await getOrCreateQuiz(mcId);
+      currentQuizId = quiz.id;
+      loadQuestions();
+    } catch (error) {
+      console.error("Error loading quiz:", error);
+      showToast("Failed to load quiz. Please try again.", "error");
+    }
+  });
+});
+</script>
+{% endblock %}

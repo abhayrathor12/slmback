@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% load static %}
+  <title>{% block title %}TechnoViz Application{% endblock %}</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      line-height: 1.6;
+      background-color: #f8f9fa;
+      color: #333;
+    }
+    
+    header {
+      background: #203f78;
+      color: white;
+      padding: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    
+    nav {
+      max-width: 100%;
+      margin: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1.5rem;
+      height: 60px;
+    }
+    
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .app-menu {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 4px;
+      transition: background-color 0.2s ease;
+    }
+    
+    .app-menu:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+      font-size: 1.4rem;
+      text-decoration: none;
+      color: white;
+      letter-spacing: -0.5px;
+    }
+    
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .nav-icon {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 10px;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+    
+    .nav-icon:hover {
+      background-color: rgba(255, 255, 255, 0.15);
+      transform: translateY(-1px);
+    }
+    
+    .user-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .user-avatar:hover {
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: scale(1.05);
+    }
+    
+    .logo-icon {
+      width: 100px;
+      height: auto;
+      margin-right: 8px;
+    }
+    
+    /* Sidebar Styles */
+    #adminSidebar {
+      position: fixed;
+      top: 60px; /* Below the navbar */
+      left: -300px; /* Hidden by default */
+      width: 238px;
+      height: calc(100vh - 60px);
+      background: linear-gradient(135deg, #203f78 0%, #1e3a8a 100%);
+      color: white;
+      padding: 0;
+      box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 999;
+      overflow-y: auto;
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    #adminSidebar.active {
+      left: 0;
+      box-shadow: 4px 0 25px rgba(0, 0, 0, 0.2);
+    }
+    
+    .sidebar-header {
+      padding: 1rem 1rem;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .sidebar-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #3b82f6, #60a5fa, #93c5fd);
+    }
+    
+    .sidebar-title {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: white;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      letter-spacing: -0.025em;
+    }
+    
+    .sidebar-title i {
+      font-size: 1.2rem;
+      color: #60a5fa;
+    }
+    
+    .sidebar-subtitle {
+      font-size: 0.875rem;
+      color: rgba(255, 255, 255, 0.6);
+      margin: 0;
+      font-weight: 400;
+    }
+    
+    .sidebar-menu {
+      list-style: none;
+      padding: 1.5rem 0;
+      margin: 0;
+    }
+    
+    .sidebar-menu li {
+      margin: 0.25rem 0;
+    }
+    
+    .sidebar-menu a {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 2rem;
+      color: rgba(255, 255, 255, 0.85);
+      text-decoration: none;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-left: 4px solid transparent;
+      font-weight: 500;
+      position: relative;
+      border-radius: 0 25px 25px 0;
+      margin: 0.125rem 0;
+      margin-right: 1rem;
+    }
+    
+    .sidebar-menu a::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 0;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 197, 253, 0.05));
+      transition: width 0.3s ease;
+      border-radius: 0 25px 25px 0;
+    }
+    
+    .sidebar-menu a:hover {
+      background: rgba(59, 130, 246, 0.15);
+      border-left-color: #60a5fa;
+      color: white;
+      transform: translateX(8px);
+    }
+    
+    .sidebar-menu a:hover::before {
+      width: 100%;
+    }
+    
+    .sidebar-menu a:active {
+      background: rgba(59, 130, 246, 0.25);
+      border-left-color: #3b82f6;
+    }
+    
+    .sidebar-menu .icon {
+      width: 22px;
+      text-align: center;
+      font-size: 1.125rem;
+      color: #93c5fd;
+      transition: all 0.3s ease;
+    }
+    
+    .sidebar-menu a:hover .icon {
+      color: white;
+      transform: scale(1.1);
+    }
+    
+    .sidebar-menu .text {
+      font-size: 0.95rem;
+      font-weight: 500;
+      letter-spacing: 0.025em;
+    }
+    
+    /* Sidebar overlay for mobile */
+    .sidebar-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 998;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .sidebar-overlay.active {
+      display: block;
+      opacity: 1;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      min-height: calc(100vh - 180px);
+      transition: margin-left 0.3s ease;
+    }
+    
+    .container.sidebar-open {
+      margin-left: 300px;
+    }
+    
+    footer {
+      background-color: #203f78;
+      color: #9ca3af;
+      text-align: center;
+      padding: 2rem 1rem;
+      margin-top: auto;
+      transition: margin-left 0.3s ease;
+    }
+    
+    footer.sidebar-open {
+      margin-left: 238px;
+    }
+    
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    /* Dropdown styles */
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      right: 0;
+      background-color: white;
+      min-width: 200px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+      z-index: 1;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+    
+    .dropdown-item {
+      color: #333;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+      transition: background-color 0.2s ease;
+    }
+    
+    .dropdown-item:hover {
+      background-color: #f3f4f6;
+    }
+    
+    /* Mobile Styles */
+    @media (max-width: 768px) {
+      nav {
+        padding: 0.5rem 1rem;
+        height: 56px;
+      }
+      
+      .logo {
+        font-size: 1.2rem;
+      }
+      
+      .logo-icon {
+        width: 80px;
+      }
+      
+      .nav-icon {
+        padding: 8px;
+        font-size: 1rem;
+      }
+      
+      .user-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 0.8rem;
+      }
+      
+      #adminSidebar {
+        top: 56px;
+        height: calc(100vh - 56px);
+        left: -100%;
+      }
+      
+      .container {
+        margin: 1rem auto;
+        padding: 0 0.5rem;
+      }
+      
+      .container.sidebar-open {
+        margin-left: 0;
+      }
+      
+      footer.sidebar-open {
+        margin-left: 0;
+      }
+    }
+    
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes slideInLeft {
+      from { transform: translateX(-100%); }
+      to { transform: translateX(0); }
+    }
+    
+    .container {
+      animation: fadeIn 0.3s ease-out;
+    }
+    
+    #adminSidebar.active {
+      animation: slideInLeft 0.3s ease-out;
+    }
+    
+    /* Scrollbar for sidebar */
+    #adminSidebar::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    #adminSidebar::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.1);
+    }
+    
+    #adminSidebar::-webkit-scrollbar-thumb {
+      background: rgba(96, 165, 250, 0.4);
+      border-radius: 4px;
+    }
+    
+    #adminSidebar::-webkit-scrollbar-thumb:hover {
+      background: rgba(96, 165, 250, 0.6);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav>
+      <div class="nav-left">
+        <button class="app-menu" title="Apps" id="sidebarToggle">
+          <i class="fas fa-th"></i>
+        </button>
+        <a href="/" class="logo">
+          <img src="{% static 'images/logo.png' %}" alt="Technoviz Logo" class="logo-icon" />
+        </a>
+      </div>
+      
+      <div class="nav-right">
+        <button class="nav-icon" title="User Settings">
+          <i class="fas fa-user"></i>
+        </button>
+        
+        <div class="dropdown">
+          <button class="nav-icon" title="Profile">
+            <i class="fas fa-user-circle"></i>
+          </button>
+          <div class="dropdown-content">
+            <a href="#" class="dropdown-item">
+              <i class="fas fa-user-edit"></i> Edit Profile
+            </a>
+            <a href="#" class="dropdown-item">
+              <i class="fas fa-cog"></i> Settings
+            </a>
+            <a href="#" class="dropdown-item">
+              <i class="fas fa-question-circle"></i> Help
+            </a>
+          </div>
+        </div>
+        
+        <button class="nav-icon" title="Logout" id="logoutBtn">
+          <i class="fas fa-sign-out-alt"></i>
+        </button>
+        
+        <div class="user-avatar" title="User Avatar">
+          U
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Sidebar Overlay for mobile -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- Admin Sidebar -->
+  <aside id="adminSidebar">
+    <div class="sidebar-header">
+      <h3 class="sidebar-title">
+        <i class="fas fa-tools"></i>
+        Admin Panel
+      </h3>
+      <p class="sidebar-subtitle">Content Management</p>
+    </div>
+    
+    <ul class="sidebar-menu">
+      <li>
+        <a href="{% url 'admin_home' %}">
+          <span class="icon"><i class="fas fa-home"></i></span>
+          <span class="text">Home</span>
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'add_topic' %}">
+          <span class="icon"><i class="fas fa-plus-circle"></i></span>
+          <span class="text">Add Topic</span>
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'add_module' %}">
+          <span class="icon"><i class="fas fa-cube"></i></span>
+          <span class="text">Add Module</span>
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'add_maincontent' %}">
+          <span class="icon"><i class="fas fa-file-alt"></i></span>
+          <span class="text">Add Main Content</span>
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'add_page' %}">
+          <span class="icon"><i class="fas fa-plus-square"></i></span>
+          <span class="text">Add Page</span>
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'add_quiz' %}">
+          <span class="icon"><i class="fas fa-plus-square"></i></span>
+          <span class="text">Add Quiz</span>
+        </a>
+      </li>
+    </ul>
+  </aside>
+
+  <div class="container">
+    {% block content %}
+      <!-- Child templates will override this block -->
+      <div style="text-align: center; padding: 3rem 0;">
+        <h2 style="color: #1e3a8a; margin-bottom: 1rem;">Welcome to TechnoViz</h2>
+        <p style="color: #6b7280; font-size: 1.1rem;">Your content will appear here</p>
+      </div>
+    {% endblock %}
+  </div>
+
+  {% comment %} <footer>
+    <div class="footer-content">
+      <p>&copy; {% now "Y" %} TechnoViz. All rights reserved.</p>
+    </div>
+  </footer> {% endcomment %}
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const sidebarToggle = document.getElementById('sidebarToggle');
+      const sidebar = document.getElementById('adminSidebar');
+      const sidebarOverlay = document.getElementById('sidebarOverlay');
+      const container = document.querySelector('.container');
+      const footer = document.querySelector('footer');
+      
+      // Check user role and initialize sidebar
+      const userRole = localStorage.getItem("role");
+      const sidebarState = localStorage.getItem("sidebarOpen");
+      console.log(userRole, "userRole");
+      
+      if (userRole === "admin") {
+        // Initialize sidebar state from localStorage
+        if (sidebarState === "true") {
+          openSidebar();
+        }
+        
+        // Show sidebar toggle functionality for admin
+        sidebarToggle.addEventListener('click', function() {
+          toggleSidebar();
+        });
+        
+        // Close sidebar when clicking overlay (mobile)
+        sidebarOverlay.addEventListener('click', function() {
+          closeSidebar();
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+          if (window.innerWidth > 768) {
+            sidebarOverlay.classList.remove('active');
+          }
+        });
+      } else {
+        // Hide sidebar completely for non-admin users
+        sidebar.style.display = 'none';
+      }
+      
+      function toggleSidebar() {
+        const isActive = sidebar.classList.contains('active');
+        
+        if (isActive) {
+          closeSidebar();
+        } else {
+          openSidebar();
+        }
+      }
+      
+      function openSidebar() {
+        sidebar.classList.add('active');
+        localStorage.setItem("sidebarOpen", "true");
+      
+        if (window.innerWidth > 768) {
+          container.classList.add('sidebar-open');
+          // ✅ only add class if footer exists
+          if (footer) footer.classList.add('sidebar-open');
+        } else {
+          sidebarOverlay.classList.add('active');
+        }
+      }
+      
+      function closeSidebar() {
+        sidebar.classList.remove('active');
+        container.classList.remove('sidebar-open');
+        // ✅ only remove class if footer exists
+        if (footer) footer.classList.remove('sidebar-open');
+        sidebarOverlay.classList.remove('active');
+        localStorage.setItem("sidebarOpen", "false");
+      }
+      
+      // Close dropdowns when clicking outside
+      document.addEventListener('click', function(event) {
+        const dropdowns = document.querySelectorAll('.dropdown');
+        dropdowns.forEach(dropdown => {
+          if (!dropdown.contains(event.target)) {
+            const dropdownContent = dropdown.querySelector('.dropdown-content');
+            if (dropdownContent) {
+              dropdownContent.style.display = 'none';
+            }
+          }
+        });
+      });
+      
+      // Handle logout click
+      logoutBtn.addEventListener("click", async function() {
+        if (confirm("Are you sure you want to logout?")) {
+          const refreshToken = localStorage.getItem("refresh");
+          if (refreshToken) {
+            try {
+              await fetch("/accounts/logout/", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${localStorage.getItem("access")}`,
+                },
+                body: JSON.stringify({ refresh: refreshToken }),
+              });
+            } catch (err) {
+              console.error("Logout failed:", err);
+            }
+          }
+      
+          // Clear localStorage anyway
+          localStorage.clear();
+          window.location.href = "/";
+        }
+      });
+      
+    });
+  </script>
+</body>
+</html>

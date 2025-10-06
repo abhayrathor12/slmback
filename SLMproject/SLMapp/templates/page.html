@@ -1,0 +1,619 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f5f5f5;
+}
+span.page_num{
+  font-size:1.2rem;
+}
+.learning-layout {
+  display: flex;
+  min-height: calc(100vh - 60px); /* Adjust for navbar height */
+  background: #f5f5f5;
+}
+
+/* Sidebar Styles */
+.sidebar {
+  width: 280px;
+  border-right: 1px solid #e0e0e0;
+  position: fixed;
+  left: 0;
+  top: 60px; /* Adjust based on your navbar height */
+  height: calc(100vh - 60px);
+  overflow-y: auto;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-header {
+  
+  padding-bottom: 15px;
+  background: none!important;
+}
+
+.sidebar-title {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.page-list {
+  list-style: none;
+}
+
+.page-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 5px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 0.9rem;
+  color: #495057;
+  background: transparent;
+}
+
+.page-item:hover {
+  background: #e9ecef;
+}
+
+.page-item.active {
+
+  color: #0066cc;
+  font-weight: 500;
+}
+
+.page-item.completed {
+  color: #0d6efd;
+}
+
+.page-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #ced4da;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  flex-shrink: 0;
+  background: white;
+}
+
+.page-item.active .page-icon {
+  border-color: #0d6efd;
+  background: #0d6efd;
+  color: white;
+}
+
+.page-item.completed .page-icon {
+  border-color: #0d6efd;
+  background: #0d6efd;
+  color: white;
+}
+
+.page-icon::before {
+  content: '✓';
+  display: none;
+}
+
+.page-item.completed .page-icon::before,
+.page-item.active .page-icon::before {
+  display: block;
+}
+
+/* Main Content Area */
+.main-content {
+  flex: 1;
+  margin-left: 150px;
+  padding: 40px 80px;
+  min-height: calc(100vh - 60px);
+}
+
+.content-header {
+  margin-bottom: 40px;
+}
+
+.content-title {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 20px;
+}
+
+.content-body {
+  background: transparent;
+  padding: 0;
+  margin-bottom: 40px;
+}
+
+#contentFrame {
+  width: 100%;
+  border: none;
+  display: block;
+  min-height: 200px;
+  background: transparent;
+}
+
+.content-divider {
+  height: 1px;
+  background: #e0e0e0;
+  margin: 40px 0 30px 0;
+}
+
+/* Navigation Buttons */
+.navigation-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+}
+.sidebar-header::before{
+  background: none !important;
+}
+.nav-btn {
+  padding: 10px 20px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+  color: #495057;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-btn:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+}
+
+.nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: white;
+  color: #adb5bd;
+}
+
+.next-btn {
+  background: #0d6efd;
+  color: white;
+  border-color: #0d6efd;
+}
+
+.next-btn:hover:not(:disabled) {
+  background: #0b5ed7;
+  border-color: #0b5ed7;
+}
+
+.finish-btn {
+  background: #0d6efd;
+  color: white;
+  border-color: #0d6efd;
+}
+
+.finish-btn:hover:not(:disabled) {
+  background: #218838;
+  border-color: #218838;
+}
+
+.loading-spinner {
+  display: none;
+  justify-content: center;
+  align-items: center;
+  padding: 60px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e0e7ff;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    position: relative;
+    height: auto;
+    top: 0;
+  }
+  
+  .main-content {
+    margin-left: 0;
+    padding: 20px;
+  }
+  
+  .learning-layout {
+    flex-direction: column;
+  }
+}
+</style>
+
+<div class="learning-layout">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h2 class="sidebar-title" id="sidebarTitle"></h2>
+    </div>
+    <ul class="page-list" id="pageList">
+      <!-- Pages will be loaded here -->
+    </ul>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="loading-spinner" id="loadingSpinner">
+      <div class="spinner"></div>
+    </div>
+
+    <div id="mainContentArea" style="display: none;">
+      <div class="content-header">
+        <h1 class="content-title" id="pageTitle">Loading...</h1>
+      </div>
+
+      <div class="content-body">
+        <iframe id="contentFrame"></iframe>
+        
+        <div class="content-divider"></div>
+        
+        <div class="navigation-buttons">
+          <button id="prevBtn" class="nav-btn">
+            <span>←</span>
+            Previous
+          </button>
+          <button id="nextBtn" class="nav-btn next-btn">
+            Next
+            <span>→</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  
+  const accessToken = localStorage.getItem("access");
+  let currentPageId = parseInt(window.location.pathname.split("/")[2]);
+  let pagesList = [];
+  let currentPageIndex = 0;
+  let mainContentId = null;
+  let completedPages = new Set();
+  
+  function showLoading() {
+    document.getElementById("loadingSpinner").style.display = "flex";
+    document.getElementById("mainContentArea").style.display = "none";
+  }
+  
+  function hideLoading() {
+    document.getElementById("loadingSpinner").style.display = "none";
+    document.getElementById("mainContentArea").style.display = "block";
+  }
+  
+  function resizeIframe() {
+    const iframe = document.getElementById("contentFrame");
+    try {
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+      const height = iframeDoc.body.scrollHeight;
+      iframe.style.height = (height + 20) + "px";
+    } catch (e) {
+      console.error("Error resizing iframe:", e);
+    }
+  }
+  
+  async function loadPage(pageId) {
+    showLoading();
+  
+    try {
+      const res = await fetch(`/pages/${pageId}/`, {
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json"
+        }
+      });
+      console.log(accessToken,"hsfhfhdsjhshf");
+  
+      if (!res.ok) throw new Error("Failed to load page");
+      const page = await res.json();
+      console.log(page.main_content.quiz);
+  
+      // Update page title
+      document.getElementById("pageTitle").textContent = "Page" + page.order ;
+
+  
+      // Load content in iframe
+      const iframe = document.getElementById("contentFrame");
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+      iframeDoc.open();
+      iframeDoc.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              line-height: 1.8;
+              color: #495057;
+              margin: 0;
+              padding: 0;
+              background: transparent;
+            }
+            h1, h2, h3 { 
+              color: #1a1a1a; 
+              margin-top: 1.5rem; 
+              margin-bottom: 1rem; 
+              font-weight: 600;
+            }
+            h1 { font-size: 1.75rem; }
+            h2 { font-size: 1.5rem; }
+            h3 { font-size: 1.25rem; }
+            p { 
+              margin: 1rem 0; 
+              font-size: 1rem;
+              color: #495057;
+            }
+            ul, ol { 
+              margin: 1rem 0; 
+              padding-left: 2rem; 
+            }
+            li { 
+              margin: 0.5rem 0; 
+              color: #495057;
+            }
+          </style>
+        </head>
+        <body>${page.content}</body>
+        </html>
+      `);
+      iframeDoc.close();
+  
+      // Resize iframe after content loads
+      iframe.onload = () => {
+        setTimeout(resizeIframe, 100);
+      };
+      setTimeout(resizeIframe, 200);
+  
+      mainContentId = page.main_content?.id || null;
+      document.getElementById("sidebarTitle").textContent =
+      page.main_content?.title || "Untitled";
+      pagesList = page.main_content.pages.sort((a, b) => a.order - b.order);
+      currentPageIndex = pagesList.findIndex(p => p.id === pageId);
+  
+      // Check completed pages
+      if (page.is_completed) {
+        completedPages.add(pageId);
+      }
+  
+      updateSidebar();
+      updateNavigation();
+      hideLoading();
+    } catch (error) {
+      console.error("Error loading page:", error);
+      document.getElementById("mainContentArea").innerHTML =
+        `<div style="text-align: center; color: #dc3545; padding: 40px;">
+          <h3>Error loading page</h3>
+          <p>Please try again or contact support.</p>
+        </div>`;
+      hideLoading();
+    }
+  }
+  
+  function updateSidebar() {
+    const pageList = document.getElementById("pageList");
+    pageList.innerHTML = "";
+  
+    pagesList.forEach((page) => {
+      const li = document.createElement("li");
+      li.className = "page-item";
+      
+      if (page.id === currentPageId) {
+        li.classList.add("active");
+      }
+      
+      if (page.completed) {
+        li.classList.add("completed");
+      }
+  
+      li.innerHTML = `
+        <div class="page-icon"></div>
+        <span class="page_num">${page.title || `Page ${page.order}`}</span>
+        <span class="page_num">knowledge Check</span>
+      `;
+      
+      pageList.appendChild(li);
+    });
+  }
+  
+  
+  function updateNavigation() {
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const isFirstPage = currentPageIndex <= 0;
+    const isLastPage = currentPageIndex >= pagesList.length - 1;
+  
+    prevBtn.disabled = isFirstPage;
+    prevBtn.onclick = () => {
+      if (!isFirstPage) {
+        const prevPageId = pagesList[currentPageIndex - 1].id;
+        history.pushState(null, '', `/pages/${prevPageId}/`);
+        currentPageId = prevPageId;
+        loadPage(prevPageId);
+      }
+    };
+  
+    if (isLastPage) {
+      nextBtn.innerHTML = `Knowledge Check <span>📝</span>`;
+      nextBtn.className = "nav-btn quiz-btn";
+      nextBtn.disabled = false;
+      document.getElementById("pageTitle").textContent = "Knowledge Check";
+      nextBtn.onclick = async () => {
+        loadQuiz(mainContentId);
+      };
+    } else {
+      nextBtn.innerHTML = `Next <span>→</span>`;
+      nextBtn.className = "nav-btn next-btn";
+      nextBtn.disabled = false;
+      nextBtn.onclick = async () => {
+        const currentPage = pagesList[currentPageIndex].id;
+        try {
+          await fetch(`/pages/${currentPage}/complete/`, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+          });
+  
+          completedPages.add(currentPage);
+  
+          const nextPageId = pagesList[currentPageIndex + 1].id;
+          history.pushState(null, '', `/pages/${nextPageId}/`);
+          currentPageId = nextPageId;
+          loadPage(nextPageId);
+        } catch (error) {
+          console.error("Error marking page complete:", error);
+        }
+      };
+    }
+  }
+  async function loadQuiz(mainContentId) {
+    showLoading();
+    try {
+      const res = await fetch(`/api/quizzes/?main_content=${mainContentId}`, {
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json"
+        }
+      });
+      if (!res.ok) throw new Error("Failed to load quiz");
+      const quizzes = await res.json();
+      const quiz = quizzes[0]; // assume one quiz per maincontent
+  
+      const iframe = document.getElementById("contentFrame");
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+      iframeDoc.open();
+      iframeDoc.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: sans-serif; padding: 20px; }
+            .question { margin-bottom: 20px; }
+            .choices label { display: block; margin: 6px 0; }
+            .btn { padding: 10px 20px; border-radius: 6px; background: #007bff; color: white; cursor: pointer; border: none; }
+            .error { color: red; margin-top: 10px; }
+          </style>
+        </head>
+        <body>
+          <h2>${quiz.title || "Knowledge Check"}</h2>
+          <form id="quizForm">
+            ${quiz.questions.map(q => `
+              <div class="question">
+                <p><b>${q.text}</b></p>
+                <div class="choices">
+                  ${q.choices.map(c => `
+                    <label>
+                      <input type="radio" name="q${q.id}" value="${c.id}"> ${c.text}
+                    </label>
+                  `).join("")}
+                </div>
+              </div>
+            `).join("")}
+            <button type="submit" class="btn">Finish</button>
+            <div id="quizError" class="error"></div>
+          </form>
+        </body>
+        </html>
+      `);
+      iframeDoc.close();
+  
+      // Handle quiz submit
+      iframe.onload = () => {
+        const quizForm = iframe.contentDocument.getElementById("quizForm");
+        quizForm.onsubmit = async (e) => {
+          e.preventDefault();
+          const formData = new FormData(quizForm);
+          let answers = {};
+          for (let [k, v] of formData.entries()) {
+            const qid = k.replace("q", "");
+            answers[qid] = v;
+          }
+  
+          try {
+            const res = await fetch(`/api/quizzes/${quiz.id}/submit/`, {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${accessToken}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ answers })
+            });
+            const result = await res.json();
+            if (result.passed) {
+              await fetch(`/maincontents/${mainContentId}/complete/`, {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${accessToken}`,
+                  "Content-Type": "application/json",
+                },
+              });
+              alert("✅ Knowledge Check passed! Main content completed.");
+              window.location.href = "/user_home";
+            } else {
+              iframe.contentDocument.getElementById("quizError").innerText = "❌ Wrong answers, please try again.";
+            }
+          } catch (error) {
+            console.error("Error submitting quiz:", error);
+          }
+        };
+      };
+  
+      hideLoading();
+    } catch (error) {
+      console.error("Error loading quiz:", error);
+    }
+  }
+  
+  window.addEventListener('popstate', () => {
+    const newPageId = parseInt(window.location.pathname.split("/")[2]);
+    if (newPageId !== currentPageId) {
+      currentPageId = newPageId;
+      loadPage(currentPageId);
+    }
+  });
+  
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' && currentPageIndex > 0) {
+      document.getElementById("prevBtn").click();
+    } else if (e.key === 'ArrowRight' && currentPageIndex < pagesList.length - 1) {
+      document.getElementById("nextBtn").click();
+    }
+  });
+  
+  // Auto-resize iframe on window resize
+  window.addEventListener('resize', resizeIframe);
+  
+  loadPage(currentPageId);
+</script>
+
+{% endblock %}
