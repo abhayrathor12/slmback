@@ -173,6 +173,7 @@ class QuizViewSet(viewsets.ModelViewSet):
     queryset = Quiz.objects.all()
     serializer_class = QuizSerializer
 
+    # ✅ Add Question
     @action(detail=True, methods=["post"])
     def add_question(self, request, pk=None):
         quiz = self.get_object()
@@ -181,21 +182,55 @@ class QuizViewSet(viewsets.ModelViewSet):
             serializer.save(quiz=quiz)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    
-    
+
+    # ✅ Update Question
+    @action(detail=True, methods=["put", "patch"])
+    def update_question(self, request, pk=None):
+        quiz = self.get_object()
+        question_id = request.data.get("question_id")
+        if not question_id:
+            return Response({"error": "question_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            question = quiz.questions.get(id=question_id)
+        except Question.DoesNotExist:
+            return Response({"error": "Question not found in this quiz"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = QuestionSerializer(question, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # ✅ Delete Question
+    @action(detail=True, methods=["delete"])
+    def delete_question(self, request, pk=None):
+        quiz = self.get_object()
+        question_id = request.query_params.get("question_id") or request.data.get("question_id")
+
+        if not question_id:
+            return Response({"error": "question_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            question = quiz.questions.get(id=question_id)
+        except Question.DoesNotExist:
+            return Response({"error": "Question not found in this quiz"}, status=status.HTTP_404_NOT_FOUND)
+
+        question.delete()
+        return Response({"message": "Question deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
+    # ✅ Filter quizzes by main_content
     def get_queryset(self):
         qs = super().get_queryset()
         main_content = self.request.query_params.get("main_content")
         if main_content:
             qs = qs.filter(main_content_id=main_content)
         return qs
-    
-    
-    
+
+    # ✅ Submit quiz
     @action(detail=True, methods=["post"])
     def submit(self, request, pk=None):
-        quiz = self.get_object()   # quiz/<pk> is still the quiz ID
+        quiz = self.get_object()
         answers = request.data.get("answers", {})  # {question_id: choice_id}
         score = 0
 

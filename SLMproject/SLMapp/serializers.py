@@ -185,6 +185,34 @@ class QuestionSerializer(serializers.ModelSerializer):
             Choice.objects.create(question=question, **choice_data)
         return question
 
+    def update(self, instance, validated_data):
+        # Extract nested choice data
+        choices_data = validated_data.pop("choices", [])
+        instance.text = validated_data.get("text", instance.text)
+        instance.save()
+
+        # Update choices
+        existing_choices = list(instance.choices.all())
+
+        for i, choice_data in enumerate(choices_data):
+            if i < len(existing_choices):
+                # Update existing choice
+                choice = existing_choices[i]
+                choice.text = choice_data.get("text", choice.text)
+                choice.is_correct = choice_data.get("is_correct", choice.is_correct)
+                choice.save()
+            else:
+                # Create new choice if extra provided
+                Choice.objects.create(question=instance, **choice_data)
+
+        # If fewer choices sent, delete extras
+        if len(choices_data) < len(existing_choices):
+            for extra_choice in existing_choices[len(choices_data):]:
+                extra_choice.delete()
+
+        return instance
+
+
 class QuizSerializer(serializers.ModelSerializer):
     questions = QuestionSerializer(many=True, required=False)
 
