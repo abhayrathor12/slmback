@@ -25,7 +25,7 @@ SECRET_KEY = "django-insecure-%a_htvvnfx_k0yi*cgmzbu0^t62$zezoyje-07*0!r)oo1rsvx
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["TechnovizSLM.pythonanywhere.com","192.168.1.60"]
+ALLOWED_HOSTS = ["slmpro.pythonanywhere.com","192.168.1.60"]
 
 
 # Application definition
@@ -149,8 +149,8 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,              # optional
 }
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-     "http://192.168.1.60:5173",
+    "https://slmfront.vercel.app",
+    
 ]
 
 CORS_ALLOW_ALL_ORIGIN = True
