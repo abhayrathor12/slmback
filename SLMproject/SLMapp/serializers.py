@@ -2,7 +2,6 @@
 from rest_framework import serializers
 from .models import *
 
-
 class PageMiniSerializer(serializers.ModelSerializer):
     """ Lightweight serializer for listing pages (used inside MainContent) """
     completed = serializers.SerializerMethodField()
@@ -90,12 +89,14 @@ class MainContentSerializer(serializers.ModelSerializer):
             ).exists()
         return True
 
-
 class ModuleSerializer(serializers.ModelSerializer):
     main_contents = MainContentSerializer(many=True, read_only=True)
     completed = serializers.SerializerMethodField()
     locked = serializers.SerializerMethodField()
     completion_percentage = serializers.SerializerMethodField()
+
+    # ✅ Include the new fields explicitly
+    difficulty_level = serializers.CharField(read_only=False, required=False)
 
     class Meta:
         model = Module
@@ -104,11 +105,12 @@ class ModuleSerializer(serializers.ModelSerializer):
             "title",
             "description",
             "order",
+            "difficulty_level",   # ✅ Adde
             "completed",
             "locked",
             "main_contents",
             "topic",
-             "completion_percentage",
+            "completion_percentage",
         ]
 
     def get_completed(self, obj):
@@ -125,7 +127,7 @@ class ModuleSerializer(serializers.ModelSerializer):
                 user=user, module=prev, completed=True
             ).exists()
         return True
-    
+
     def get_completion_percentage(self, obj):
         """
         Calculate module completion based on total pages in all main_contents.
@@ -148,13 +150,14 @@ class ModuleSerializer(serializers.ModelSerializer):
         return round((completed_pages / total_pages) * 100, 2)
 
 
+
 class TopicSerializer(serializers.ModelSerializer):
     modules = ModuleSerializer(many=True, read_only=True)
     completed = serializers.SerializerMethodField()
 
     class Meta:
         model = Topic
-        fields = ["id", "name", "order", "modules", "completed"]
+        fields = ["id", "name", "order", "modules","prize", "completed"]
 
     def get_completed(self, obj):
         user = self.context["request"].user
@@ -163,7 +166,10 @@ class TopicSerializer(serializers.ModelSerializer):
                 return False
         return True
     
-    
+class PublicTopicSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Topic
+        fields = ["id", "name","prize"]
 
 
 class ChoiceSerializer(serializers.ModelSerializer):

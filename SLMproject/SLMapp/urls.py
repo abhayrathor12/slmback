@@ -4,10 +4,10 @@ from rest_framework.routers import DefaultRouter
 
 
 router = DefaultRouter()
-router.register(r'api/topics', TopicViewSet)
-router.register(r'api/modules', ModuleViewSet)
-router.register(r'api/maincontents', MainContentViewSet)
-router.register(r'api/pages', PageViewSet)
+router.register(r'api/topics', TopicViewSet, basename="topic")
+router.register(r'api/modules', ModuleViewSet, basename="module")
+router.register(r'api/maincontents', MainContentViewSet, basename="maincontent")
+router.register(r'api/pages', PageViewSet, basename="page")
 router.register(r"api/quizzes", QuizViewSet, basename="quiz")
 
 urlpatterns = [
@@ -20,6 +20,7 @@ urlpatterns = [
     path("add_maincontent",add_maincontent,name="add_maincontent"),
     path("edit_maincontent/<int:pk>/", edit_maincontent, name="edit_maincontent"),
     
+    path("public/topics/", PublicTopicListView.as_view(), name="public_topics"),
     
     path("add_page",add_page,name="add_page"),
     path("edit_page/<int:pk>/", edit_page, name="edit_page"),

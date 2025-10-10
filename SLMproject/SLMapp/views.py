@@ -1,33 +1,47 @@
 # learning/views.py
 from rest_framework import generics, permissions, status
 from .serializers import TopicSerializer, QuizSerializer
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from .models import Topic, Module, Page, Progress, Quiz, QuizResult
 from .serializers import *
 from rest_framework.decorators import action
-from django.db.models import Q
 from django.shortcuts import render
-from .models import CustomUser
-from .serializers import *
 from rest_framework import viewsets, permissions
 from .models import Topic, Module, MainContent, Page
-from .serializers import *
 from accounts.serializers import *
+from rest_framework.exceptions import PermissionDenied
+
 
 class TopicViewSet(viewsets.ModelViewSet):
-    queryset = Topic.objects.all().order_by("order")
+    queryset = Topic.objects.all()
     serializer_class = TopicSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        # If the user is an admin, return all topics
+        if user.is_superuser:
+            return Topic.objects.all().order_by("order")
+        # Otherwise, return only the user's topics
+        return user.topics.all().order_by("order")
 
 
 class ModuleViewSet(viewsets.ModelViewSet):
     queryset = Module.objects.all().order_by("order")
     serializer_class = ModuleSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        # If admin, return all modules
+        if user.is_superuser:
+            return Module.objects.all().order_by("order")
+        # Otherwise, return modules related to the user's topics
+        user_topic_ids = user.topics.values_list('id', flat=True)
+        return Module.objects.filter(topic_id__in=user_topic_ids).order_by("order")
+
 
 
 class MainContentViewSet(viewsets.ModelViewSet):
@@ -46,15 +60,30 @@ class PageViewSet(viewsets.ModelViewSet):
 # ----------------------------
 
 class TopicListView(generics.ListAPIView):
-    queryset = Topic.objects.all().order_by("order")
     serializer_class = TopicSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+        # Filter topics based on the authenticated user's topics
+        user = self.request.user
+        return Topic.objects.filter(users=user).order_by("order")
+
 
 class ModuleDetailView(generics.RetrieveAPIView):
-    queryset = Module.objects.all()
     serializer_class = ModuleSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # Filter modules based on the user's topics
+        user = self.request.user
+        return Module.objects.filter(topic__in=user.topics.all())
+
+    def get_object(self):
+        # Additional check to ensure the module is accessible
+        obj = super().get_object()
+        if obj.topic not in self.request.user.topics.all():
+            raise PermissionDenied("You do not have access to this module.")
+        return obj
 
 
 class MainContentDetailView(generics.RetrieveAPIView):
@@ -70,7 +99,11 @@ class PageDetailView(APIView):
         page = get_object_or_404(Page, id=page_id)
         serializer = PageSerializer(page, context={'request': request})
         return Response(serializer.data)
-    
+
+class PublicTopicListView(generics.ListAPIView):
+    queryset = Topic.objects.all().order_by("order")
+    serializer_class = PublicTopicSerializer
+    permission_classes = [permissions.AllowAny]
     
 # ----------------------------
 # Completion Views
@@ -257,18 +290,20 @@ class UserProgressSummary(APIView):
 
     def get(self, request):
         user = request.user
-        total_modules = Module.objects.count()
+        # Filter modules based on user's topics
+        modules = Module.objects.filter(topic__in=user.topics.all())
+        total_modules = modules.count()
 
         completed_modules = 0
         in_progress_modules = 0
         not_started_modules = 0
 
-        for module in Module.objects.all():
-            # ✅ check if module is fully completed
+        for module in modules:
+            # Check if module is fully completed
             if Progress.objects.filter(user=user, module=module, completed=True).exists():
                 completed_modules += 1
             else:
-                # ✅ check if any page inside this module is completed
+                # Check if any page inside this module is completed
                 any_page_done = PageProgress.objects.filter(
                     user=user, page__main_content__module=module, completed=True
                 ).exists()

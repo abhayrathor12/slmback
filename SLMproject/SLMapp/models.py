@@ -3,17 +3,26 @@ from accounts.models import CustomUser
 
 class Topic(models.Model):
     name = models.CharField(max_length=100)   # Python, VS Code, SQL
-    order = models.IntegerField(default=0)    # To maintain order
+    order = models.IntegerField(default=0) 
+    prize = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)# To maintain order
 
     def __str__(self):
         return self.name
 
 
 class Module(models.Model):
+    DIFFICULTY_CHOICES = [
+        ('beginner', 'Beginner'),
+        ('intermediate', 'Intermediate'),
+        ('hard', 'Hard'),
+    ]
+
     topic = models.ForeignKey(Topic, on_delete=models.CASCADE, related_name="modules")
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     order = models.IntegerField(default=0)
+    difficulty_level = models.CharField(max_length=20, choices=DIFFICULTY_CHOICES, default='beginner')  # Added difficulty level
+    
 
     def __str__(self):
         return f"{self.topic.name} - {self.title}"
