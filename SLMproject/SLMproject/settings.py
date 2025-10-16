@@ -154,7 +154,7 @@ SIMPLE_JWT = {
 # ]
 
 CORS_ALLOWED_ORIGINS = [
-   "https://slmfront.vercel.app"
+   "https://slmfront.vercel.app/"
 ]
 
 CORS_ALLOW_ALL_ORIGIN = True
