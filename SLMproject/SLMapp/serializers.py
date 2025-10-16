@@ -5,19 +5,23 @@ from .models import *
 class PageMiniSerializer(serializers.ModelSerializer):
     """ Lightweight serializer for listing pages (used inside MainContent) """
     completed = serializers.SerializerMethodField()
+    formatted_duration = serializers.SerializerMethodField()  # Add this
 
     class Meta:
         model = Page
-        fields = ["id", "order", "completed","title"]
+        fields = ["id", "order", "completed", "title", "formatted_duration"]  # Include formatted_duration
 
     def get_completed(self, obj):
         user = self.context["request"].user
         return PageProgress.objects.filter(user=user, page=obj, completed=True).exists()
 
+    def get_formatted_duration(self, obj):
+        return format_duration(obj.time_duration)
 
 class PageSerializer(serializers.ModelSerializer):
     main_content = serializers.SerializerMethodField()
     completed = serializers.SerializerMethodField()
+    formatted_duration = serializers.SerializerMethodField()
 
     class Meta:
         model = Page
@@ -29,6 +33,9 @@ class PageSerializer(serializers.ModelSerializer):
     def get_completed(self, obj):
         user = self.context["request"].user
         return PageProgress.objects.filter(user=user, page=obj, completed=True).exists()
+    
+    def get_formatted_duration(self, obj):
+        return format_duration(obj.time_duration)
 
     def create(self, validated_data):
         # main_content comes from request.data, not validated_data
@@ -43,17 +50,21 @@ class PageSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
-
 class MainContentSerializer(serializers.ModelSerializer):
     pages = serializers.SerializerMethodField()
     completed = serializers.SerializerMethodField()
     locked = serializers.SerializerMethodField()
-    quiz = serializers.SerializerMethodField()  # <-- add this
-    
+    quiz = serializers.SerializerMethodField()
+    total_duration = serializers.SerializerMethodField()
+    formatted_duration = serializers.SerializerMethodField()
+    module = serializers.PrimaryKeyRelatedField(queryset=Module.objects.all())  # for write
+    module_detail = serializers.SerializerMethodField()  # for read
 
     class Meta:
         model = MainContent
         fields = '__all__'
+        # OR if you want to keep both:
+        # fields = [ ..., 'module', 'module_detail', ...]
 
     def get_pages(self, obj):
         qs = obj.pages.all().order_by("order")
@@ -62,7 +73,6 @@ class MainContentSerializer(serializers.ModelSerializer):
     def get_quiz(self, obj):
         return hasattr(obj, "quiz") and obj.quiz is not None
     
-
     def get_completed(self, obj):
         user = self.context["request"].user
         return MainContentProgress.objects.filter(user=user, main_content=obj, completed=True).exists()
@@ -77,7 +87,6 @@ class MainContentSerializer(serializers.ModelSerializer):
         ).count()
         return round((completed / total) * 100)
     
-
     def get_locked(self, obj):
         user = self.context["request"].user
         if obj.order == 1:
@@ -88,15 +97,29 @@ class MainContentSerializer(serializers.ModelSerializer):
                 user=user, main_content=prev, completed=True
             ).exists()
         return True
+    
+    def get_total_duration(self, obj):
+        return obj.total_duration
+
+    def get_formatted_duration(self, obj):
+        return obj.formatted_duration
+    
+    def get_module_detail(self, obj):
+        return {
+            "id": obj.module.id,
+            "title": obj.module.title
+        }
+
 
 class ModuleSerializer(serializers.ModelSerializer):
     main_contents = MainContentSerializer(many=True, read_only=True)
     completed = serializers.SerializerMethodField()
     locked = serializers.SerializerMethodField()
     completion_percentage = serializers.SerializerMethodField()
-
-    # ✅ Include the new fields explicitly
+    total_duration = serializers.SerializerMethodField()         # ✅ Added
+    formatted_duration = serializers.SerializerMethodField() 
     difficulty_level = serializers.CharField(read_only=False, required=False)
+    
 
     class Meta:
         model = Module
@@ -105,18 +128,21 @@ class ModuleSerializer(serializers.ModelSerializer):
             "title",
             "description",
             "order",
-            "difficulty_level",   # ✅ Adde
+            "difficulty_level",  
             "completed",
             "locked",
             "main_contents",
             "topic",
             "completion_percentage",
+            "total_duration",
+            "formatted_duration",
         ]
 
     def get_completed(self, obj):
         user = self.context["request"].user
         return Progress.objects.filter(user=user, module=obj, completed=True).exists()
 
+    
     def get_locked(self, obj):
         user = self.context["request"].user
         if obj.order == 1:
@@ -148,16 +174,25 @@ class ModuleSerializer(serializers.ModelSerializer):
             return 0
 
         return round((completed_pages / total_pages) * 100, 2)
+    
+    def get_total_duration(self, obj):
+        return obj.total_duration
+
+    def get_formatted_duration(self, obj):
+        return obj.formatted_duration
 
 
 
 class TopicSerializer(serializers.ModelSerializer):
     modules = ModuleSerializer(many=True, read_only=True)
     completed = serializers.SerializerMethodField()
+    total_duration = serializers.SerializerMethodField()   
+    formatted_duration = serializers.SerializerMethodField()
 
     class Meta:
         model = Topic
-        fields = ["id", "name", "order", "modules","prize", "completed"]
+        fields = ["id", "name", "order", "modules","prize", "completed",  "total_duration",
+            "formatted_duration",]
 
     def get_completed(self, obj):
         user = self.context["request"].user
@@ -165,6 +200,16 @@ class TopicSerializer(serializers.ModelSerializer):
             if not Progress.objects.filter(user=user, module=module, completed=True).exists():
                 return False
         return True
+    
+        # ✅ Duration methods
+    def get_total_duration(self, obj):
+        """Sum of durations of all modules in this topic."""
+        return sum(module.total_duration for module in obj.modules.all())
+
+    def get_formatted_duration(self, obj):
+        """Human-readable duration, e.g., '2 hr 15 min'."""
+        total_minutes = self.get_total_duration(obj)
+        return format_duration(total_minutes)
     
 class PublicTopicSerializer(serializers.ModelSerializer):
     class Meta:

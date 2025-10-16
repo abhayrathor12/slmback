@@ -1,6 +1,15 @@
 from django.db import models
 from accounts.models import CustomUser
 
+def format_duration(minutes):
+    hours, mins = divmod(minutes, 60)
+    if hours and mins:
+        return f"{hours} hr {mins} min"
+    elif hours:
+        return f"{hours} hr"
+    else:
+        return f"{mins} min"
+
 class Topic(models.Model):
     name = models.CharField(max_length=100)   # Python, VS Code, SQL
     order = models.IntegerField(default=0) 
@@ -26,6 +35,17 @@ class Module(models.Model):
 
     def __str__(self):
         return f"{self.topic.name} - {self.title}"
+    
+    
+    @property
+    def total_duration(self):
+        """Sum of all maincontent durations (in minutes)."""
+        return sum(main.total_duration for main in self.main_contents.all())
+
+    @property
+    def formatted_duration(self):
+        """Human-readable duration, e.g. '1 hr 5 min'."""
+        return format_duration(self.total_duration)
 
 
 class MainContent(models.Model):
@@ -36,6 +56,16 @@ class MainContent(models.Model):
 
     def __str__(self):
         return f"{self.module.title} - {self.title}"
+    
+    @property
+    def total_duration(self):
+        """Sum of all page durations (in minutes)."""
+        return sum(page.time_duration for page in self.pages.all())
+
+    @property
+    def formatted_duration(self):
+        """Human-readable duration."""
+        return format_duration(self.total_duration)
 
 
 class Page(models.Model):
@@ -43,6 +73,7 @@ class Page(models.Model):
     title = models.CharField(max_length=200, blank=True, default="Untitled Page")
     content = models.TextField()
     order = models.IntegerField(default=0)
+    time_duration = models.PositiveIntegerField(default=0, help_text="Duration in minutes")
 
     def __str__(self):
         return f"{self.main_content.title} - Page {self.order}"
