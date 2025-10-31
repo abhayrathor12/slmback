@@ -116,7 +116,7 @@ class ModuleSerializer(serializers.ModelSerializer):
     completed = serializers.SerializerMethodField()
     locked = serializers.SerializerMethodField()
     completion_percentage = serializers.SerializerMethodField()
-    total_duration = serializers.SerializerMethodField()         # ✅ Added
+    total_duration = serializers.SerializerMethodField()         
     formatted_duration = serializers.SerializerMethodField() 
     difficulty_level = serializers.CharField(read_only=False, required=False)
     

@@ -39,7 +39,6 @@ urlpatterns = [
     path("pages_page/<int:page_id>/",pages_page,name="pages_page"),
     path("quiz_page",quiz_page,name="quiz_page"),
     
-    
     path("topics/", TopicListView.as_view(), name="topics"),
     path("modules/<int:pk>/", ModuleDetailView.as_view(), name="module-detail"),
     path("maincontents/<int:pk>/", MainContentDetailView.as_view(), name="maincontent-detail"),

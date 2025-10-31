@@ -264,7 +264,7 @@ class QuizViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def submit(self, request, pk=None):
         quiz = self.get_object()
-        answers = request.data.get("answers", {})  # {question_id: choice_id}
+        answers = request.data.get("answers", {})  
         score = 0
 
         for q in quiz.questions.all():

@@ -19,7 +19,7 @@ class Topic(models.Model):
         return self.name
 
 
-class Module(models.Model):
+class Module(models.Model): 
     DIFFICULTY_CHOICES = [
         ('beginner', 'Beginner'),
         ('intermediate', 'Intermediate'),
