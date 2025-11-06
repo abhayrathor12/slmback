@@ -260,20 +260,37 @@ class QuizViewSet(viewsets.ModelViewSet):
             qs = qs.filter(main_content_id=main_content)
         return qs
 
-    # ✅ Submit quiz
     @action(detail=True, methods=["post"])
     def submit(self, request, pk=None):
         quiz = self.get_object()
-        answers = request.data.get("answers", {})  
+        answers = request.data.get("answers", {})  # {question_id: choice_id}
         score = 0
+        total_questions = quiz.questions.count()
+        results = []
 
         for q in quiz.questions.all():
-            correct = q.choices.filter(is_correct=True).first()
-            if str(q.id) in answers and str(correct.id) == str(answers[str(q.id)]):
+            user_choice_id = answers.get(str(q.id))
+            correct_choice = q.choices.filter(is_correct=True).first()
+
+            is_correct = str(user_choice_id) == str(correct_choice.id) if user_choice_id and correct_choice else False
+            if is_correct:
                 score += 1
 
-        passed = score >= quiz.questions.count() * 0.6
+            results.append({
+                "question_id": q.id,
+                "question_text": q.text,
+                "user_answer": user_choice_id,
+                "correct_answer": correct_choice.id if correct_choice else None,
+                "is_correct": is_correct,
+                "choices": [
+                    {"id": c.id, "text": c.text, "is_correct": c.is_correct}
+                    for c in q.choices.all()
+                ]
+            })
 
+        passed = score >= total_questions * 0.6
+
+        # Save result
         QuizResult.objects.create(
             user=request.user,
             quiz=quiz,
@@ -281,7 +298,13 @@ class QuizViewSet(viewsets.ModelViewSet):
             passed=passed,
         )
 
-        return Response({"score": score, "passed": passed})
+        return Response({
+            "score": score,
+            "total": total_questions,
+            "percentage": int((score / total_questions) * 100),
+            "passed": passed,
+            "results": results  # This is the key!
+        })
 
 
 
@@ -319,56 +342,3 @@ class UserProgressSummary(APIView):
             "in_progress_modules": in_progress_modules,
             "not_started_modules": not_started_modules,
         })
-
-def login_page(request):
-    return render(request,"login.html")
-
-def register_page(request):
-    return render(request,"register.html")
-
-def add_module(request):
-    return render(request,"add_module.html")
-
-def add_topic(request):
-    return render(request,"add_topic.html")
-
-def add_page(request):
-    return render(request,"add_page.html")
-
-
-def edit_page(request, pk):
-    return render(request, "edit_page.html", {"page_id": pk})
-
-def add_maincontent(request):
-    return render(request,"add_maincontent.html")
-
-
-def edit_maincontent(request, pk):
-    return render(request, "edit_maincontent.html", {"maincontent_id": pk})
-
-def admin_home(request):
-    return render(request,"admin_home.html")
-
-def edit_topic(request, pk):
-    return render(request, "edit_topic.html", {"topic_id": pk})
-
-def module_page(request,module_id):
-    return render(request,"module.html",{"module_id": module_id})
-
-def edit_module(request, pk):
-    return render(request, "edit_module.html", {"module_id": pk})
-
-def pages_page(request,page_id):
-    return render(request,"page.html",{"page_id": page_id})
-
-def quiz_page(request):
-    return render(request,"quiz.html")
-
-def user_home(request):
-    return render(request,"user_home.html")
-
-def add_quiz(request):
-    return render(request,"add_quiz.html")
-
-def edit_quiz(request, question_id):
-    return render(request, "edit_quiz.html", {"question_id": question_id})
