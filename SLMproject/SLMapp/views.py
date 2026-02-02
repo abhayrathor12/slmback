@@ -51,22 +51,45 @@ class MainContentViewSet(viewsets.ModelViewSet):
 
 
 class PageViewSet(viewsets.ModelViewSet):
-    queryset = Page.objects.all().order_by("order")
     serializer_class = PageSerializer
     permission_classes = [permissions.IsAuthenticated]
+    
+    def get_serializer_class(self):
+        if self.action == "list":
+            return PageSidebarSerializer
+        return PageSerializer
+
+    def get_queryset(self):
+        queryset = Page.objects.all().order_by("order")
+
+        module_id = self.request.query_params.get("module")
+        main_content_id = self.request.query_params.get("main_content")
+
+        if module_id:
+            queryset = queryset.filter(main_content__module_id=module_id)
+
+        if main_content_id:
+            queryset = queryset.filter(main_content_id=main_content_id)
+
+        return queryset
+
 
 # ----------------------------
 # Detail Views
 # ----------------------------
 
 class TopicListView(generics.ListAPIView):
-    serializer_class = TopicSerializer
+    serializer_class = TopicListSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # Filter topics based on the authenticated user's topics
         user = self.request.user
-        return Topic.objects.filter(users=user).order_by("order")
+        return (
+            Topic.objects
+            .filter(users=user)
+            .prefetch_related("modules")  # 🚀 performance boost
+            .order_by("order")
+        )
 
 
 class ModuleDetailView(generics.RetrieveAPIView):

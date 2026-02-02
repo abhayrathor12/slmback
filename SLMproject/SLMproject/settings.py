@@ -148,14 +148,14 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": False,                # optional
     "BLACKLIST_AFTER_ROTATION": True,              # optional
 }
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:5173",
-#      "http://192.168.1.60:5173",
-# ]
-
 CORS_ALLOWED_ORIGINS = [
-   "https://slmfront.vercel.app/"
+    "http://localhost:5173",
+     "http://192.168.1.60:5173",
 ]
+
+# CORS_ALLOWED_ORIGINS = [
+#    "https://slmfront.vercel.app/"
+# ]
 
 CORS_ALLOW_ALL_ORIGIN = True
 # Default primary key field type

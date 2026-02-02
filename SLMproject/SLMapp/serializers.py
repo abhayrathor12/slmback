@@ -270,3 +270,53 @@ class QuizSerializer(serializers.ModelSerializer):
     class Meta:
         model = Quiz
         fields = ["id", "title", "questions", "main_content"]
+
+class ModuleListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Module
+        fields = [
+            "id",
+            "title",
+            "description",
+            "difficulty_level",
+            "order",
+            "formatted_duration",
+            "completion_percentage",
+        ]
+
+class TopicListSerializer(serializers.ModelSerializer):
+    modules = ModuleListSerializer(many=True)
+
+    class Meta:
+        model = Topic
+        fields = [
+            "id",
+            "name",
+            "order",
+            "modules",
+        ]
+        
+class PageSidebarSerializer(serializers.ModelSerializer):
+    completed = serializers.SerializerMethodField()
+    formatted_duration = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Page
+        fields = [
+            "id",
+            "title",
+            "order",
+            "completed",
+            "formatted_duration",
+        ]
+
+    def get_completed(self, obj):
+        user = self.context["request"].user
+        return PageProgress.objects.filter(
+            user=user,
+            page=obj,
+            completed=True
+        ).exists()
+
+    def get_formatted_duration(self, obj):
+        return format_duration(obj.time_duration)

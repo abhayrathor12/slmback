@@ -19,33 +19,63 @@ class Topic(models.Model):
         return self.name
 
 
-class Module(models.Model): 
+# models.py - THIS IS EXCELLENT! KEEP IT EXACTLY LIKE THIS
+class Module(models.Model):
     DIFFICULTY_CHOICES = [
         ('beginner', 'Beginner'),
         ('intermediate', 'Intermediate'),
         ('hard', 'Hard'),
     ]
-
     topic = models.ForeignKey(Topic, on_delete=models.CASCADE, related_name="modules")
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     order = models.IntegerField(default=0)
-    difficulty_level = models.CharField(max_length=20, choices=DIFFICULTY_CHOICES, default='beginner')  # Added difficulty level
-    
+    difficulty_level = models.CharField(max_length=20, choices=DIFFICULTY_CHOICES, default='beginner')
 
     def __str__(self):
         return f"{self.topic.name} - {self.title}"
-    
-    
+
     @property
     def total_duration(self):
-        """Sum of all maincontent durations (in minutes)."""
         return sum(main.total_duration for main in self.main_contents.all())
 
     @property
     def formatted_duration(self):
-        """Human-readable duration, e.g. '1 hr 5 min'."""
         return format_duration(self.total_duration)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:  # Creating new
+            if self.order <= 0:
+                # Auto assign next order
+                max_order = Module.objects.filter(topic=self.topic).aggregate(
+                    models.Max('order')
+                )['order__max']
+                self.order = (max_order or 0) + 1
+            else:
+                # Insert at specific position → shift others down
+                Module.objects.filter(
+                    topic=self.topic,
+                    order__gte=self.order
+                ).update(order=models.F('order') + 1)
+        else:  # Updating existing
+            old = Module.objects.get(pk=self.pk)
+            if old.order != self.order:
+                if self.order < old.order:
+                    # Moving up
+                    Module.objects.filter(
+                        topic=self.topic,
+                        order__gte=self.order,
+                        order__lt=old.order
+                    ).exclude(pk=self.pk).update(order=models.F('order') + 1)
+                elif self.order > old.order:
+                    # Moving down
+                    Module.objects.filter(
+                        topic=self.topic,
+                        order__lte=self.order,
+                        order__gt=old.order
+                    ).exclude(pk=self.pk).update(order=models.F('order') - 1)
+
+        super().save(*args, **kwargs)
 
 
 class MainContent(models.Model):
