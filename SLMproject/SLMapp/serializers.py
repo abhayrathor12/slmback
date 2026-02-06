@@ -308,6 +308,7 @@ class PageSidebarSerializer(serializers.ModelSerializer):
             "order",
             "completed",
             "formatted_duration",
+            "main_content",
         ]
 
     def get_completed(self, obj):

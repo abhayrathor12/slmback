@@ -1,6 +1,6 @@
 # learning/views.py
 from rest_framework import generics, permissions, status
-from .serializers import TopicSerializer, QuizSerializer
+from .serializers import TopicSerializer, QuizSerializer,PageSerializer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
@@ -57,6 +57,8 @@ class PageViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == "list":
             return PageSidebarSerializer
+        if self.request.user.is_staff:
+            return PageSerializer
         return PageSerializer
 
     def get_queryset(self):
@@ -73,6 +75,24 @@ class PageViewSet(viewsets.ModelViewSet):
 
         return queryset
 
+class AdminPageViewSet(viewsets.ModelViewSet):
+    queryset = Page.objects.all().order_by("order")
+    serializer_class = PageSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        module_id = self.request.query_params.get("module")
+        main_content_id = self.request.query_params.get("main_content")
+
+        if module_id:
+            queryset = queryset.filter(main_content__module_id=module_id)
+
+        if main_content_id:
+            queryset = queryset.filter(main_content_id=main_content_id)
+
+        return queryset
 
 # ----------------------------
 # Detail Views
@@ -120,8 +140,27 @@ class PageDetailView(APIView):
 
     def get(self, request, page_id):
         page = get_object_or_404(Page, id=page_id)
+
+        # 🔒 Check previous pages
+        prev_pages = Page.objects.filter(
+            main_content=page.main_content,
+            order__lt=page.order
+        )
+
+        for prev in prev_pages:
+            if not PageProgress.objects.filter(
+                user=request.user,
+                page=prev,
+                completed=True
+            ).exists():
+                return Response(
+                    {"detail": "Please complete previous pages first"},
+                    status=403
+                )
+
         serializer = PageSerializer(page, context={'request': request})
         return Response(serializer.data)
+
 
 class PublicTopicListView(generics.ListAPIView):
     queryset = Topic.objects.all().order_by("order")

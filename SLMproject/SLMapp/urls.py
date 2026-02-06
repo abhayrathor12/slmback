@@ -8,6 +8,7 @@ router.register(r'api/topics', TopicViewSet, basename="topic")
 router.register(r'api/modules', ModuleViewSet, basename="module")
 router.register(r'api/maincontents', MainContentViewSet, basename="maincontent")
 router.register(r'api/pages', PageViewSet, basename="page")
+router.register(r'api/admin/pages', AdminPageViewSet, basename='admin-pages')
 router.register(r"api/quizzes", QuizViewSet, basename="quiz")
 
 urlpatterns = [
