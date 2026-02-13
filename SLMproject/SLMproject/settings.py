@@ -165,3 +165,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 
+
+BUNNY_LIBRARY_ID = "597883"
+BUNNY_TOKEN_KEY = "ad56e07d-c0d3-480d-8681-563f65b9543b"

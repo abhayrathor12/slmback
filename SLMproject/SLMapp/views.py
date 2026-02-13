@@ -13,7 +13,7 @@ from .models import Topic, Module, MainContent, Page
 from accounts.serializers import *
 from rest_framework.exceptions import PermissionDenied
 
-
+from django.http import HttpResponse
 class TopicViewSet(viewsets.ModelViewSet):
     queryset = Topic.objects.all()
     serializer_class = TopicSerializer
@@ -53,13 +53,16 @@ class MainContentViewSet(viewsets.ModelViewSet):
 class PageViewSet(viewsets.ModelViewSet):
     serializer_class = PageSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_serializer_class(self):
         if self.action == "list":
             return PageSidebarSerializer
-        if self.request.user.is_staff:
-            return PageSerializer
         return PageSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["request"] = self.request   # 🔥 THIS IS REQUIRED
+        return context
 
     def get_queryset(self):
         queryset = Page.objects.all().order_by("order")

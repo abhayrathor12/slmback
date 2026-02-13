@@ -104,7 +104,7 @@ class Page(models.Model):
     content = models.TextField()
     order = models.IntegerField(default=0)
     time_duration = models.PositiveIntegerField(default=0, help_text="Duration in minutes")
-
+    video_id = models.CharField(max_length=255, blank=True, null=True)
     def __str__(self):
         return f"{self.main_content.title} - Page {self.order}"
 

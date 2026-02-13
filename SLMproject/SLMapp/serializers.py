@@ -1,7 +1,10 @@
 # learning/serializers.py
 from rest_framework import serializers
 from .models import *
-
+import hashlib
+import time
+from django.conf import settings
+from rest_framework import serializers
 class PageMiniSerializer(serializers.ModelSerializer):
     """ Lightweight serializer for listing pages (used inside MainContent) """
     completed = serializers.SerializerMethodField()
@@ -22,7 +25,7 @@ class PageSerializer(serializers.ModelSerializer):
     main_content = serializers.SerializerMethodField()
     completed = serializers.SerializerMethodField()
     formatted_duration = serializers.SerializerMethodField()
-
+    video_url = serializers.SerializerMethodField()
     class Meta:
         model = Page
         fields = '__all__'
@@ -48,6 +51,25 @@ class PageSerializer(serializers.ModelSerializer):
         if main_content_id:
             validated_data["main_content_id"] = main_content_id
         return super().update(instance, validated_data)
+    
+    def get_video_url(self, obj):
+        # If no video → return None
+        if not obj.video_id:
+            return None
+
+        LIBRARY_ID = settings.BUNNY_LIBRARY_ID
+        TOKEN_KEY = settings.BUNNY_TOKEN_KEY
+
+        expires = int(time.time()) + 60  # 1 minute
+
+        raw = f"{TOKEN_KEY}{obj.video_id}{expires}"
+        token = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+        return (
+            f"https://iframe.mediadelivery.net/embed/"
+            f"{LIBRARY_ID}/{obj.video_id}"
+            f"?token={token}&expires={expires}"
+        )
 
 
 class MainContentSerializer(serializers.ModelSerializer):
@@ -308,7 +330,6 @@ class PageSidebarSerializer(serializers.ModelSerializer):
             "order",
             "completed",
             "formatted_duration",
-            "main_content",
         ]
 
     def get_completed(self, obj):
@@ -321,3 +342,4 @@ class PageSidebarSerializer(serializers.ModelSerializer):
 
     def get_formatted_duration(self, obj):
         return format_duration(obj.time_duration)
+
