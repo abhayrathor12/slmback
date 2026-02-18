@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import CustomUser
-from .serializers import UserSerializer, UserRegisterSerializer, UserLoginSerializer
+from .serializers import UserSerializer, UserRegisterSerializer, UserLoginSerializer,ToggleActiveSerializer
 from django.shortcuts import render
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
@@ -11,7 +11,11 @@ class UserRegisterView(generics.CreateAPIView):
     queryset = CustomUser.objects.all()
     serializer_class = UserRegisterSerializer
     permission_classes = [AllowAny]
-
+    
+class UserDeleteView(generics.DestroyAPIView):
+    queryset = CustomUser.objects.all()
+    permission_classes = [IsAuthenticated]
+    
 class UserLoginView(APIView):
     permission_classes = [AllowAny]
 
@@ -23,7 +27,12 @@ class UserLoginView(APIView):
         refresh = RefreshToken.for_user(user)
 
         return Response({
-            "user": UserSerializer(user).data,
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "role": user.role,
+            },
             "refresh": str(refresh),
             "access": str(refresh.access_token),
         })
@@ -52,4 +61,10 @@ class UserDetailView(generics.RetrieveAPIView):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
 
+
+class ToggleUserActiveView(generics.UpdateAPIView):
+    queryset = CustomUser.objects.all()
+    serializer_class = ToggleActiveSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['patch']  # block PUT, only allow PATCH
 

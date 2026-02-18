@@ -5,63 +5,85 @@ import hashlib
 import time
 from django.conf import settings
 from rest_framework import serializers
+from django.db import transaction
+
 class PageMiniSerializer(serializers.ModelSerializer):
-    """ Lightweight serializer for listing pages (used inside MainContent) """
     completed = serializers.SerializerMethodField()
-    formatted_duration = serializers.SerializerMethodField()  # Add this
+    formatted_duration = serializers.SerializerMethodField()
+    locked = serializers.SerializerMethodField()   # ✅ ADD THIS
 
     class Meta:
         model = Page
-        fields = ["id", "order", "completed", "title", "formatted_duration"]  # Include formatted_duration
+        fields = ["id", "order", "completed", "title", "formatted_duration", "locked"]
 
     def get_completed(self, obj):
         user = self.context["request"].user
-        return PageProgress.objects.filter(user=user, page=obj, completed=True).exists()
+        return PageProgress.objects.filter(
+            user=user, page=obj, completed=True
+        ).exists()
+
+    def get_locked(self, obj):
+        user = self.context["request"].user
+
+        # First page is never locked
+        if obj.order == 1:
+            return False
+
+        # Get previous page
+        prev_page = Page.objects.filter(
+            main_content=obj.main_content,
+            order=obj.order - 1
+        ).first()
+
+        if not prev_page:
+            return True
+
+        return not PageProgress.objects.filter(
+            user=user,
+            page=prev_page,
+            completed=True
+        ).exists()
 
     def get_formatted_duration(self, obj):
         return format_duration(obj.time_duration)
+
 
 class PageSerializer(serializers.ModelSerializer):
     main_content = serializers.SerializerMethodField()
     completed = serializers.SerializerMethodField()
     formatted_duration = serializers.SerializerMethodField()
     video_url = serializers.SerializerMethodField()
+    
     class Meta:
         model = Page
-        fields = '__all__'
+        fields = "__all__"
+
+    # -------------------------
+    # SERIALIZER FIELDS
+    # -------------------------
 
     def get_main_content(self, obj):
         return MainContentSerializer(obj.main_content, context=self.context).data
 
     def get_completed(self, obj):
         user = self.context["request"].user
-        return PageProgress.objects.filter(user=user, page=obj, completed=True).exists()
-    
+        return PageProgress.objects.filter(
+            user=user,
+            page=obj,
+            completed=True
+        ).exists()
+
     def get_formatted_duration(self, obj):
         return format_duration(obj.time_duration)
 
-    def create(self, validated_data):
-        # main_content comes from request.data, not validated_data
-        main_content_id = self.context['request'].data.get("main_content")
-        validated_data["main_content_id"] = main_content_id
-        return super().create(validated_data)
-
-    def update(self, instance, validated_data):
-        main_content_id = self.context['request'].data.get("main_content")
-        if main_content_id:
-            validated_data["main_content_id"] = main_content_id
-        return super().update(instance, validated_data)
-    
     def get_video_url(self, obj):
-        # If no video → return None
         if not obj.video_id:
             return None
 
         LIBRARY_ID = settings.BUNNY_LIBRARY_ID
         TOKEN_KEY = settings.BUNNY_TOKEN_KEY
 
-        expires = int(time.time()) + 60  # 1 minute
-
+        expires = int(time.time()) + 60
         raw = f"{TOKEN_KEY}{obj.video_id}{expires}"
         token = hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
@@ -69,8 +91,63 @@ class PageSerializer(serializers.ModelSerializer):
             f"https://iframe.mediadelivery.net/embed/"
             f"{LIBRARY_ID}/{obj.video_id}"
             f"?token={token}&expires={expires}"
+             f"&playerjs=1"
         )
 
+    # -------------------------
+    # CREATE WITH ORDER SHIFT
+    # -------------------------
+
+    @transaction.atomic
+    def create(self, validated_data):
+        request = self.context["request"]
+
+        main_content_id = request.data.get("main_content")
+        new_order = int(request.data.get("order", 0))
+
+        # Shift existing pages forward
+        Page.objects.filter(
+            main_content_id=main_content_id,
+            order__gte=new_order
+        ).update(order=F("order") + 1)
+
+        validated_data["main_content_id"] = main_content_id
+        validated_data["order"] = new_order
+
+        return super().create(validated_data)
+
+    # -------------------------
+    # UPDATE WITH SMART REORDER
+    # -------------------------
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        request = self.context["request"]
+
+        new_order = int(request.data.get("order", instance.order))
+        old_order = instance.order
+        main_content_id = instance.main_content_id
+
+        if new_order != old_order:
+
+            if new_order > old_order:
+                # Moving DOWN → shift others UP
+                Page.objects.filter(
+                    main_content_id=main_content_id,
+                    order__gt=old_order,
+                    order__lte=new_order
+                ).update(order=F("order") - 1)
+
+            else:
+                # Moving UP → shift others DOWN
+                Page.objects.filter(
+                    main_content_id=main_content_id,
+                    order__gte=new_order,
+                    order__lt=old_order
+                ).update(order=F("order") + 1)
+
+        validated_data["order"] = new_order
+        return super().update(instance, validated_data)
 
 class MainContentSerializer(serializers.ModelSerializer):
     pages = serializers.SerializerMethodField()
@@ -132,11 +209,24 @@ class MainContentSerializer(serializers.ModelSerializer):
             "title": obj.module.title
         }
 
+class MainContentListSerializer(serializers.ModelSerializer):
+    module_detail = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MainContent
+        fields = ["id", "title", "description", "order", "module", "module_detail"]
+
+    def get_module_detail(self, obj):
+        return {
+            "id": obj.module.id,
+            "title": obj.module.title
+        }
 
 class ModuleSerializer(serializers.ModelSerializer):
     main_contents = MainContentSerializer(many=True, read_only=True)
     completed = serializers.SerializerMethodField()
     locked = serializers.SerializerMethodField()
+    has_quiz = serializers.SerializerMethodField()   # ✅ ADD THIS
     completion_percentage = serializers.SerializerMethodField()
     total_duration = serializers.SerializerMethodField()         
     formatted_duration = serializers.SerializerMethodField() 
@@ -158,6 +248,7 @@ class ModuleSerializer(serializers.ModelSerializer):
             "completion_percentage",
             "total_duration",
             "formatted_duration",
+            "has_quiz"
         ]
 
     def get_completed(self, obj):
@@ -202,6 +293,9 @@ class ModuleSerializer(serializers.ModelSerializer):
 
     def get_formatted_duration(self, obj):
         return obj.formatted_duration
+    
+    def get_has_quiz(self, obj):   # ✅ ADD THIS
+        return hasattr(obj, "quiz") and obj.quiz is not None
 
 
 
@@ -343,3 +437,34 @@ class PageSidebarSerializer(serializers.ModelSerializer):
     def get_formatted_duration(self, obj):
         return format_duration(obj.time_duration)
 
+
+
+class TopicAdminListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Topic
+        fields = ["id", "name", "order", "prize"]
+
+class AdminModuleListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Module
+        fields = [
+            "id",
+            "title",
+            "description",
+            "difficulty_level",
+            "order",
+            "topic",
+        ]
+        
+class AdminPageListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Page
+        fields = [
+            "id",
+            "title",
+            "content",
+            "order",
+            "time_duration",
+            "main_content",
+            "video_id",
+        ]

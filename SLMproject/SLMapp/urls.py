@@ -31,5 +31,5 @@ urlpatterns = [
     path("quiz/<int:topic_id>/submit/", SubmitQuizView.as_view(), name="submit-quiz"),
     
     path("progress/summary/", UserProgressSummary.as_view(), name="user-progress-summary"),
-
+path("api/dashboard-stats/", AdminDashboardStatsView.as_view()),
 ]+ router.urls

@@ -16,8 +16,19 @@ from rest_framework.exceptions import PermissionDenied
 from django.http import HttpResponse
 class TopicViewSet(viewsets.ModelViewSet):
     queryset = Topic.objects.all()
-    serializer_class = TopicSerializer
     permission_classes = [permissions.IsAuthenticated]
+    
+
+    def get_serializer_class(self):
+        # 🔥 Admin listing
+        if self.action == "list" and self.request.user.is_superuser:
+            return TopicAdminListSerializer
+
+        # 🔥 Student listing
+        if self.action == "list":
+            return TopicSerializer
+
+        return TopicSerializer
 
     def get_queryset(self):
         user = self.request.user
@@ -29,25 +40,43 @@ class TopicViewSet(viewsets.ModelViewSet):
 
 
 class ModuleViewSet(viewsets.ModelViewSet):
-    queryset = Module.objects.all().order_by("order")
-    serializer_class = ModuleSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-        # If admin, return all modules
+
         if user.is_superuser:
             return Module.objects.all().order_by("order")
-        # Otherwise, return modules related to the user's topics
-        user_topic_ids = user.topics.values_list('id', flat=True)
-        return Module.objects.filter(topic_id__in=user_topic_ids).order_by("order")
 
+        user_topic_ids = user.topics.values_list('id', flat=True)
+        return Module.objects.filter(
+            topic_id__in=user_topic_ids
+        ).order_by("order")
+
+    def get_serializer_class(self):
+        # 🔥 Admin listing
+        if self.action == "list" and self.request.user.is_superuser:
+            return AdminModuleListSerializer
+
+        # 🔥 Student listing
+        if self.action == "list":
+            return ModuleListSerializer
+
+        # 🔥 Detail / Create / Update
+        return ModuleSerializer
 
 
 class MainContentViewSet(viewsets.ModelViewSet):
-    queryset = MainContent.objects.all().order_by("order")
-    serializer_class = MainContentSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return MainContent.objects.select_related("module").order_by("order")
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return MainContentListSerializer
+        return MainContentSerializer
+
 
 
 class PageViewSet(viewsets.ModelViewSet):
@@ -78,24 +107,49 @@ class PageViewSet(viewsets.ModelViewSet):
 
         return queryset
 
+from django.db import transaction
+from django.db.models import F
+from rest_framework.response import Response
+from rest_framework import status
+
+
 class AdminPageViewSet(viewsets.ModelViewSet):
-    queryset = Page.objects.all().order_by("order")
-    serializer_class = PageSerializer
     permission_classes = [permissions.IsAdminUser]
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        return (
+            Page.objects
+            .select_related(
+                "main_content",
+                "main_content__module",
+                "main_content__module__topic"
+            )
+            .order_by("order")
+        )
 
-        module_id = self.request.query_params.get("module")
-        main_content_id = self.request.query_params.get("main_content")
+    def get_serializer_class(self):
+        if self.action == "list":
+            return AdminPageListSerializer
+        return PageSerializer
 
-        if module_id:
-            queryset = queryset.filter(main_content__module_id=module_id)
+    # 🔥 DELETE WITH AUTO SHIFT
+    @transaction.atomic
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
 
-        if main_content_id:
-            queryset = queryset.filter(main_content_id=main_content_id)
+        deleted_order = instance.order
+        main_content_id = instance.main_content_id
 
-        return queryset
+        # Delete page
+        instance.delete()
+
+        # Shift remaining pages
+        Page.objects.filter(
+            main_content_id=main_content_id,
+            order__gt=deleted_order
+        ).update(order=F("order") - 1)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 # ----------------------------
 # Detail Views
@@ -406,4 +460,38 @@ class UserProgressSummary(APIView):
             "completed_modules": completed_modules,
             "in_progress_modules": in_progress_modules,
             "not_started_modules": not_started_modules,
+        })
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAdminUser
+from accounts.models import CustomUser
+from .models import Topic, Module, MainContent, Page
+from accounts.serializers import UserSerializer
+from .serializers import TopicSerializer
+
+class AdminDashboardStatsView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        total_users = CustomUser.objects.count()
+        total_topics = Topic.objects.count()
+        total_modules = Module.objects.count()
+        total_maincontents = MainContent.objects.count()
+        total_pages = Page.objects.count()
+
+        recent_users = CustomUser.objects.order_by('-id')[:5]
+
+        return Response({
+            "totalUsers": total_users,
+            "totalTopics": total_topics,
+            "totalModules": total_modules,
+            "totalMainContents": total_maincontents,
+            "totalPages": total_pages,
+            "recentUsers": UserSerializer(
+                recent_users,
+                many=True,
+                context={'request': request}  # ✅ good practice
+            ).data,
         })
