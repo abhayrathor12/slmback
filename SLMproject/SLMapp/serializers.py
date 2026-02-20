@@ -6,7 +6,7 @@ import time
 from django.conf import settings
 from rest_framework import serializers
 from django.db import transaction
-
+from django.db.models import F
 class PageMiniSerializer(serializers.ModelSerializer):
     completed = serializers.SerializerMethodField()
     formatted_duration = serializers.SerializerMethodField()

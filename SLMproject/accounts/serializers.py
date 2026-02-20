@@ -3,7 +3,10 @@ from .models import CustomUser
 from SLMapp.models import Topic
 from rest_framework import serializers
 from django.contrib.auth import authenticate
-from .models import CustomUser, StudentProfile, ProfessionalProfile
+from .models import CustomUser, StudentProfile, ProfessionalProfile,UserCertificate
+
+from rest_framework import serializers
+from .models import SupportConversation, SupportMessage
 
 class UserRegisterSerializer(serializers.ModelSerializer):
 
@@ -147,3 +150,63 @@ class ToggleActiveSerializer(serializers.ModelSerializer):
         instance.is_active = not instance.is_active
         instance.save()
         return instance
+
+
+
+
+class SupportMessageSerializer(serializers.ModelSerializer):
+    screenshot = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SupportMessage
+        fields = ["id", "sender", "message", "screenshot", "created_at"]
+
+    def get_screenshot(self, obj):
+        request = self.context.get("request")
+        if obj.screenshot:
+            if request:
+                return request.build_absolute_uri(obj.screenshot.url)
+            return obj.screenshot.url
+        return None
+
+
+
+class SupportConversationSerializer(serializers.ModelSerializer):
+    messages = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SupportConversation
+        fields = ["id", "created_at", "messages"]
+
+    def get_messages(self, obj):
+        request = self.context.get("request")
+        return SupportMessageSerializer(
+            obj.messages.all().order_by("created_at"),
+            many=True,
+            context={"request": request},
+        ).data
+
+        
+from rest_framework import serializers
+from .models import Feedback
+
+class FeedbackSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Feedback
+        fields = ["id", "rating", "message", "created_at"]
+
+
+class UserCertificateSerializer(serializers.ModelSerializer):
+    certificate_file = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserCertificate
+        fields = ["id", "certificate_file", "uploaded_at"]
+
+    def get_certificate_file(self, obj):
+        request = self.context.get("request")
+        if obj.certificate_file:
+            if request:
+                return request.build_absolute_uri(obj.certificate_file.url)
+            return obj.certificate_file.url
+        return None

@@ -67,3 +67,64 @@ class ProfessionalProfile(models.Model):
 
     def __str__(self):
         return f"Professional Profile - {self.user.email}"
+    
+
+from django.core.validators import MinValueValidator, MaxValueValidator
+
+class Feedback(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    rating = models.IntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)]
+    )
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.rating}⭐"
+
+    
+    
+class SupportConversation(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Conversation with {self.user.username}"
+    
+class SupportMessage(models.Model):
+    conversation = models.ForeignKey(
+        SupportConversation,
+        related_name="messages",
+        on_delete=models.CASCADE
+    )
+    sender = models.CharField(
+        max_length=10,
+        choices=[("user", "User"), ("admin", "Admin")]
+    )
+    message = models.TextField(blank=True, null=True)
+    screenshot = models.ImageField(
+        upload_to="support/",
+        null=True,
+        blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.sender} - {self.created_at}"
+
+class UserCertificate(models.Model):
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name="certificates"
+    )
+    topic = models.ForeignKey(
+        "SLMapp.Topic",
+        on_delete=models.CASCADE,
+        blank=True, null=True
+    )
+    certificate_file = models.FileField(upload_to="certificates/")
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.email} Certificate {self.id}"

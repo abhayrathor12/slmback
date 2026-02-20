@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import *
 from rest_framework.routers import DefaultRouter
-
+from accounts.views import UploadUserCertificateView,StudentCertificateView
 
 router = DefaultRouter()
 router.register(r'api/topics', TopicViewSet, basename="topic")
@@ -32,4 +32,11 @@ urlpatterns = [
     
     path("progress/summary/", UserProgressSummary.as_view(), name="user-progress-summary"),
 path("api/dashboard-stats/", AdminDashboardStatsView.as_view()),
+
+path("upload-certificate/<int:user_id>/", UploadUserCertificateView.as_view()),
+path(
+    "certificate-status-all/",
+    CertificateStatusAllView.as_view(),
+    name="certificate-status-all"
+),
 ]+ router.urls

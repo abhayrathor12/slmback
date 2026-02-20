@@ -311,7 +311,7 @@ class SubmitQuizView(APIView):
             correct = q.choices.filter(is_correct=True).first()
             if str(q.id) in answers and str(correct.id) == str(answers[str(q.id)]):
                 score += 1
-        passed = score >= quiz.questions.count() * 0.6
+        passed = score >= quiz.questions.count() * 1
         QuizResult.objects.create(
             user=request.user,
             quiz=quiz,
@@ -407,7 +407,7 @@ class QuizViewSet(viewsets.ModelViewSet):
                 ]
             })
 
-        passed = score >= total_questions * 0.6
+        passed = score >= total_questions * 1
 
         # Save result
         QuizResult.objects.create(
@@ -495,3 +495,68 @@ class AdminDashboardStatsView(APIView):
                 context={'request': request}  # ✅ good practice
             ).data,
         })
+
+from accounts.models import CustomUser, UserCertificate
+from rest_framework.permissions import IsAdminUser
+from rest_framework.parsers import MultiPartParser, FormParser
+
+class UserCertificateStatusView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, user_id):
+        user = get_object_or_404(CustomUser, id=user_id)
+        topic = get_object_or_404(Topic, id=10)
+
+        modules = topic.modules.all()
+        total_modules = modules.count()
+
+        completed_modules = Progress.objects.filter(
+            user=user,
+            module__in=modules,
+            completed=True
+        ).count()
+
+        certificate = UserCertificate.objects.filter(
+            user=user,
+            topic=topic
+        ).first()
+
+        return Response({
+            "user_name": f"{user.first_name} {user.last_name}".strip() or user.email,
+            "total_modules": total_modules,
+            "completed_modules": completed_modules,
+            "all_completed": completed_modules == total_modules,
+            "certificate": certificate.certificate_file.url if certificate else None
+        })
+        
+class CertificateStatusAllView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        topic = Topic.objects.get(id=10)
+        modules = topic.modules.all()
+
+        users = CustomUser.objects.filter(topics=topic)
+
+        data = []
+
+        for user in users:
+            completed = Progress.objects.filter(
+                user=user,
+                module__in=modules,
+                completed=True
+            ).count()
+
+            certificate = UserCertificate.objects.filter(user=user).first()
+
+            data.append({
+                "id": user.id,
+                "user_name": f"{user.first_name} {user.last_name}".strip() or user.email,
+                "total_modules": modules.count(),
+                "completed_modules": completed,
+                "all_completed": completed == modules.count(),
+                "certificate": certificate.certificate_file.url if certificate else None
+            })
+
+        return Response(data)
+    

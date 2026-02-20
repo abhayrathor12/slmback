@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -141,7 +142,8 @@ STATICFILES_DIRS = [
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 from datetime import timedelta
-
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=8),   # 8 hours
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),   # you can adjust (default 1 day)
@@ -149,8 +151,8 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,              # optional
 }
 # CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:5173",
-#      "http://192.168.1.60:5173",
+#     "http://localhost:5174",
+#      "http://192.168.1.60:5174",
 # ]
 
 CORS_ALLOWED_ORIGINS = [
