@@ -269,3 +269,24 @@ class AdminSendMessageView(APIView):
         )
 
         return Response(serializer.data)
+    
+    
+    
+class AdminDeleteConversationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, convo_id):
+        if request.user.role != "admin":
+            return Response({"error": "Unauthorized"}, status=403)
+
+        try:
+            conversation = SupportConversation.objects.get(id=convo_id)
+        except SupportConversation.DoesNotExist:
+            return Response({"error": "Not found"}, status=404)
+
+        conversation.delete()
+
+        return Response(
+            {"message": "Conversation deleted successfully"},
+            status=status.HTTP_204_NO_CONTENT
+        )    
