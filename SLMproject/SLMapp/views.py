@@ -12,7 +12,8 @@ from rest_framework import viewsets, permissions
 from .models import Topic, Module, MainContent, Page
 from accounts.serializers import *
 from rest_framework.exceptions import PermissionDenied
-
+from rest_framework.permissions import IsAuthenticated
+from .models import Topic, Progress
 from django.http import HttpResponse
 class TopicViewSet(viewsets.ModelViewSet):
     queryset = Topic.objects.all()
@@ -560,3 +561,29 @@ class CertificateStatusAllView(APIView):
 
         return Response(data)
     
+
+
+class CertificateEligibilityView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        topic = Topic.objects.get(id=10)   # your certificate topic
+
+        modules = topic.modules.all()
+        total_modules = modules.count()
+
+        completed_modules = Progress.objects.filter(
+            user=user,
+            module__in=modules,
+            completed=True
+        ).count()
+
+        eligible = completed_modules == total_modules
+
+        return Response({
+            "eligible": eligible,
+            "total_modules": total_modules,
+            "completed_modules": completed_modules
+        })

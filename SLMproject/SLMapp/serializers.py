@@ -47,6 +47,26 @@ class PageMiniSerializer(serializers.ModelSerializer):
     def get_formatted_duration(self, obj):
         return format_duration(obj.time_duration)
 
+import jwt
+import time
+from django.conf import settings
+
+
+def generate_mux_signed_url(playback_id):
+    payload = {
+        "sub": playback_id,
+        "aud": "v",
+        "exp": int(time.time()) + 60  # expires in 5 minutes
+    }
+
+    token = jwt.encode(
+        payload,
+        settings.MUX_PRIVATE_KEY,
+        algorithm="RS256",
+        headers={"kid": settings.MUX_SIGNING_KEY_ID}
+    )
+
+    return f"https://stream.mux.com/{playback_id}.m3u8?token={token}"
 
 class PageSerializer(serializers.ModelSerializer):
     main_content = serializers.SerializerMethodField()
@@ -77,22 +97,10 @@ class PageSerializer(serializers.ModelSerializer):
         return format_duration(obj.time_duration)
 
     def get_video_url(self, obj):
-        if not obj.video_id:
+        if not obj.video_id :
             return None
 
-        LIBRARY_ID = settings.BUNNY_LIBRARY_ID
-        TOKEN_KEY = settings.BUNNY_TOKEN_KEY
-
-        expires = int(time.time()) + 60
-        raw = f"{TOKEN_KEY}{obj.video_id}{expires}"
-        token = hashlib.sha256(raw.encode("utf-8")).hexdigest()
-
-        return (
-            f"https://iframe.mediadelivery.net/embed/"
-            f"{LIBRARY_ID}/{obj.video_id}"
-            f"?token={token}&expires={expires}"
-             f"&playerjs=1"
-        )
+        return generate_mux_signed_url(obj.video_id )
 
     # -------------------------
     # CREATE WITH ORDER SHIFT
@@ -162,8 +170,7 @@ class MainContentSerializer(serializers.ModelSerializer):
     class Meta:
         model = MainContent
         fields = '__all__'
-        # OR if you want to keep both:
-        # fields = [ ..., 'module', 'module_detail', ...]
+
 
     def get_pages(self, obj):
         qs = obj.pages.all().order_by("order")
@@ -226,7 +233,7 @@ class ModuleSerializer(serializers.ModelSerializer):
     main_contents = MainContentSerializer(many=True, read_only=True)
     completed = serializers.SerializerMethodField()
     locked = serializers.SerializerMethodField()
-    has_quiz = serializers.SerializerMethodField()   # ✅ ADD THIS
+    has_quiz = serializers.SerializerMethodField()   
     completion_percentage = serializers.SerializerMethodField()
     total_duration = serializers.SerializerMethodField()         
     formatted_duration = serializers.SerializerMethodField() 

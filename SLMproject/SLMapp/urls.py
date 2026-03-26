@@ -39,4 +39,5 @@ path(
     CertificateStatusAllView.as_view(),
     name="certificate-status-all"
 ),
+path("certificate/eligibility/", CertificateEligibilityView.as_view()),
 ]+ router.urls

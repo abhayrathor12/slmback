@@ -1,12 +1,26 @@
-from rest_framework import generics, permissions
+from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import CustomUser
 from .serializers import UserSerializer, UserRegisterSerializer, UserLoginSerializer,ToggleActiveSerializer
-from django.shortcuts import render
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from .models import SupportConversation, SupportMessage
+from .serializers import SupportConversationSerializer,FeedbackSerializer
+from .models import UserCertificate
+from rest_framework.parsers import MultiPartParser, FormParser
+from django.shortcuts import get_object_or_404
+from rest_framework.permissions import IsAdminUser
+from rest_framework import generics
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from .models import SupportConversation
+from .serializers import SupportConversationSerializer
+from rest_framework.views import APIView
 
 from SLMapp.views import Topic
 class UserRegisterView(generics.CreateAPIView):
@@ -53,6 +67,8 @@ class LogoutView(APIView):
             return Response({"detail": "Logout successful"}, status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        
 class UserListView(generics.ListAPIView):
     queryset = CustomUser.objects.all()
     serializer_class = UserSerializer
@@ -70,13 +86,6 @@ class ToggleUserActiveView(generics.UpdateAPIView):
     permission_classes = [IsAuthenticated]
     http_method_names = ['patch']  # block PUT, only allow PATCH
 
-
-
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from .models import SupportConversation, SupportMessage
-from .serializers import SupportConversationSerializer,FeedbackSerializer
 
 
 @api_view(["GET"])
@@ -132,11 +141,7 @@ def submit_feedback(request):
     
     return Response(serializer.errors, status=400)
 
-from .models import UserCertificate
-from .serializers import UserCertificateSerializer
-from rest_framework.parsers import MultiPartParser, FormParser
-from django.shortcuts import get_object_or_404
-from rest_framework.permissions import IsAdminUser
+
 
 
 class UploadUserCertificateView(APIView):
@@ -181,11 +186,6 @@ class StudentCertificateView(APIView):
         })
     
 
-from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from .models import SupportConversation
-from .serializers import SupportConversationSerializer
 
 class AdminConversationListView(generics.ListAPIView):
     serializer_class = SupportConversationSerializer
@@ -236,7 +236,7 @@ class AdminConversationDetailView(generics.RetrieveAPIView):
 
         return Response(serializer.data)
     
-from rest_framework.views import APIView
+
 
 class AdminSendMessageView(APIView):
     permission_classes = [IsAuthenticated]
