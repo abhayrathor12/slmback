@@ -587,3 +587,12 @@ class CertificateEligibilityView(APIView):
             "total_modules": total_modules,
             "completed_modules": completed_modules
         })
+        
+from rest_framework import viewsets
+from .models import MuxAccount
+from .serializers import MuxAccountSerializer
+
+
+class MuxAccountViewSet(viewsets.ModelViewSet):
+    queryset = MuxAccount.objects.all()
+    serializer_class = MuxAccountSerializer

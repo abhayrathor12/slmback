@@ -97,7 +97,12 @@ class MainContent(models.Model):
         """Human-readable duration."""
         return format_duration(self.total_duration)
 
+class MuxAccount(models.Model):
+    name = models.CharField(max_length=50, unique=True)
 
+    def __str__(self):
+        return self.name
+    
 class Page(models.Model):
     main_content = models.ForeignKey(MainContent, on_delete=models.CASCADE, related_name="pages")
     title = models.CharField(max_length=200, blank=True, default="Untitled Page")
@@ -105,6 +110,12 @@ class Page(models.Model):
     order = models.IntegerField(default=0)
     time_duration = models.PositiveIntegerField(default=0, help_text="Duration in minutes")
     video_id = models.CharField(max_length=255, blank=True, null=True)
+    mux_account = models.ForeignKey(
+        MuxAccount,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
     def __str__(self):
         return f"{self.main_content.title} - Page {self.order}"
 

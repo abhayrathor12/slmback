@@ -52,21 +52,36 @@ import time
 from django.conf import settings
 
 
-def generate_mux_signed_url(playback_id):
+def generate_mux_signed_url(playback_id, mux_account_name):
+
+    account = settings.MUX_ACCOUNTS.get(mux_account_name)
+
+    if not account:
+        return None
+
     payload = {
         "sub": playback_id,
         "aud": "v",
-        "exp": int(time.time()) + 60  # expires in 5 minutes
+        "exp": int(time.time()) + 60
     }
 
     token = jwt.encode(
         payload,
-        settings.MUX_PRIVATE_KEY,
+        account["private_key"],
         algorithm="RS256",
-        headers={"kid": settings.MUX_SIGNING_KEY_ID}
+        headers={"kid": account["key_id"]}
     )
 
     return f"https://stream.mux.com/{playback_id}.m3u8?token={token}"
+
+from rest_framework import serializers
+from .models import MuxAccount
+
+
+class MuxAccountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MuxAccount
+        fields = "__all__"
 
 class PageSerializer(serializers.ModelSerializer):
     main_content = serializers.SerializerMethodField()
@@ -97,10 +112,10 @@ class PageSerializer(serializers.ModelSerializer):
         return format_duration(obj.time_duration)
 
     def get_video_url(self, obj):
-        if not obj.video_id :
+        if not obj.video_id or not obj.mux_account:
             return None
 
-        return generate_mux_signed_url(obj.video_id )
+        return generate_mux_signed_url(obj.video_id, obj.mux_account.name)
 
     # -------------------------
     # CREATE WITH ORDER SHIFT

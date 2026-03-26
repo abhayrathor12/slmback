@@ -10,7 +10,7 @@ router.register(r'api/maincontents', MainContentViewSet, basename="maincontent")
 router.register(r'api/pages', PageViewSet, basename="page")
 router.register(r'api/admin/pages', AdminPageViewSet, basename='admin-pages')
 router.register(r"api/quizzes", QuizViewSet, basename="quiz")
-
+router.register(r"api/mux-accounts", MuxAccountViewSet, basename="mux-accounts")
 urlpatterns = [
     
     path("public/topics/", PublicTopicListView.as_view(), name="public_topics"),

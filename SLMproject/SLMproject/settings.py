@@ -150,14 +150,14 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": False,                # optional
     "BLACKLIST_AFTER_ROTATION": True,              # optional
 }
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:5173",
-#      "http://192.168.1.60:5173",
-# ]
-
 CORS_ALLOWED_ORIGINS = [
-   "https://slmfront.vercel.app/"
+    "http://localhost:5173",
+     "http://192.168.1.60:5173",
 ]
+
+# CORS_ALLOWED_ORIGINS = [
+#    "https://slmfront.vercel.app/"
+# ]
 
 CORS_ALLOW_ALL_ORIGIN = True
 # Default primary key field type
@@ -168,10 +168,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 
-MUX_SIGNING_KEY_ID = "8p8bq00YDZ6uharwJ01yTqHiv2exqhrxRRzCWeiaMNinI"
 
-MUX_PRIVATE_KEY = """
------BEGIN RSA PRIVATE KEY-----
+MUX_ACCOUNTS = {
+
+    "mux1": {
+        "key_id": "8p8bq00YDZ6uharwJ01yTqHiv2exqhrxRRzCWeiaMNinI",
+        "private_key": """-----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEAqW7QHcgX175WbPEPgNx3H+genNhwqdWayAwbE/HAecrjPdZ2
 8pIoWjo1vYq9sWHiDvmDKfdPn0IVwjVbZDFYEu4VrQB7XjryncS/xoyDutqbWKxi
 I9w8mdtqfqP5HGBYyRwPFagJvl6eTEDvwo8BdqX6fvtANiN6DMuK0LpaqwW65jp8
@@ -197,7 +199,38 @@ Ey+LJ1sO0Nm1DxldKbLXMJc7nEk46mnbw9SbLud5yVOHcAoipVLhNdjj3rvPoEKf
 BU7XAoGBAMJQrGUdqjxmnybVM2SGpHyf4bKUPn+4lbqml5lAMRtIUUinLcLppdHh
 oemma4Sm+yOhXYDvN3yY1WTCAPlQ+WE/m117+PL47FIfeT5LkExlgpiqZYlDRrzy
 8FyKyMZk7vU44ahmmUR7wm9Ya+W/YEPidLIzbF3FU87Yiw/JBOou
------END RSA PRIVATE KEY-----
+-----END RSA PRIVATE KEY-----"""
+    },
 
-"""
+    "mux2": {
+        "key_id": "WI8ksNcJhN6Jv9uNP38i01dNbFXN023L86V48jKcQxeV00",
+        "private_key": """-----BEGIN RSA PRIVATE KEY-----
+MIIEowIBAAKCAQEA15oVp9leKyTyX6+vFPgS10AXIvfI6M+pGpYszSc1pube/pZd
+PfdiTNyzHWX7llVGUkThOLMZJ2O977iV988xlTg0xswTf6Gj0kgiYFB1RjPHTYey
+EHP0ovHPkx7OwokgMvKSEUtIliiql0y4E/jU1ZXPmHGQwXBmLLauLY/leAF4WS+E
+Df2SebanRx/fp15Bq61qRe/LqFJHBv7FN3fyj+kWilTZpfdHHwWOxvSy9bUpNQ7R
+dVFXxidvo2WujFWZtbHaJfG4IiyaagjwtaNhfoPlKpt8FOMNLBeu3X+tT+vOMpUv
+B1Rw8ysYuMEiwkCoxX+oXvggUIEpXrU/vwp9DwIDAQABAoIBACzO8MZAJlKYLKlX
+VW9puVy0DLrvPXmpQu9sG6aNihiEbf8CWCGbSvpHehBXlCij02gguaAzlLw7fguW
+1NA6ZwcotctFOZ4yhV4cMMzMm/r5oufJlmfV+Zdt4yKj6fvDTQZZpKLkfxL6I64r
+Oyynb/Bt4MXBgIC7b/jGBMAiYmIEpkF7Az6hEpdII+6aHfsgU+ASdPHCAMV9EXQ7
+Xw2HV5ySBevG70uJ6u7xkMAjcNbSPVLSTbLUH2p+x58bU8Qofac53rU/jUq7482q
+xVFd2CZRbW+w0Z14qHbg1VokWKSj47EVbY0z75QzAecgw8ZS0wOTNLHarmiGGMb3
+/W3zNfkCgYEA/byD+D762IuF1G6zb0ANIuvlyXnkiH1lC/GHVwIcL5kcDGcOCtwr
+KDKex6LBYAe34VLduPTYwycKYsjGpSyC5wSSSl/GnzkRZ/M0MKuFJLukyQS5x02+
+xyCNOEOOlZIKHZpOej+1ctcB98kgmhnfSgI9bN5O7wvg/Tu4FnLEmikCgYEA2YZ6
+MfI1RZdEmf6pV+ZDY+OgGfwFDM1/rx6pIQmHru4WOm+Rqu1ypZMpcg09EdZCS0Zi
+9+iSU0vugG/r/vZIfbaq3QxfeCjFhL01UfZ+LViaHg2v/LOgjHXqhW5juovF4q89
+3rDLZn75i/QPQhbpveWCQzntcTlqC8UmG8tytHcCgYEAoqHwHG+RrLZRA0YpMIdn
+ZBi7YhYEyw9EcxFOZBBwLHoAplpvf7p61vsLFn5VX83SqFPK1b/qJ7ugRozV9gy/
+on8lnRIiZu/XHj+eFgv5/P9gsY+b3AkS3OMaYRO8ElZWsX60CltHW+I/2qhJgzxO
+CEvDP0KGaWW9wdJDPfA133ECgYBL2u9l13boS7XqlbnsIypA/THpnc8NBeSO5vxH
+vxEH2ZL60clUd/VQ9B6x3Rf8zmDT6zm8BehxD7ueImmDwdLJtBelehkYx+8JOQoN
+CQ47NfiYnmFOmD1WfhBIc5RnizJ4uG+05qYnmgPf4D4p59+fDxf75Yl9wG3QqPF/
+I9VeRQKBgBwQ2SoQiP22VRlsVXK02Th89QzU1KCZ0LMdw+aNNOwknt6lci0FnA/u
+a8OTn/685iep6Ib3wOQkkVdsBVLossdgbE35eC6Wb3PhRDl65EpEsaZLm3pqB6FC
+hovRRCIMTv0e6DlXkEoEh+cP2+5DAI1QgPhuE2UlHEzC0sMSZBme
+-----END RSA PRIVATE KEY-----"""
+    }
 
+}
