@@ -21,6 +21,8 @@ from rest_framework.response import Response
 from .models import SupportConversation
 from .serializers import SupportConversationSerializer
 from rest_framework.views import APIView
+from .models import UserLastPage
+from .serializers import UserLastPageSerializer
 
 from SLMapp.views import Topic
 class UserRegisterView(generics.CreateAPIView):
@@ -290,3 +292,40 @@ class AdminDeleteConversationView(APIView):
             {"message": "Conversation deleted successfully"},
             status=status.HTTP_204_NO_CONTENT
         )    
+        
+class SaveLastPageView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        page_id = request.data.get("page_id")
+
+        if not page_id:
+            return Response({"error": "page_id required"}, status=400)
+
+        obj, created = UserLastPage.objects.update_or_create(
+            user=request.user,
+            defaults={"page_id": page_id}
+        )
+
+        serializer = UserLastPageSerializer(obj)
+
+        return Response({
+            "status": "saved",
+            "data": serializer.data
+        })
+        
+class GetLastPageView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        try:
+            obj = UserLastPage.objects.get(user=request.user)
+            serializer = UserLastPageSerializer(obj)
+
+            return Response(serializer.data)
+
+        except UserLastPage.DoesNotExist:
+            return Response({
+                "page_id": None
+            })

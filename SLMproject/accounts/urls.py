@@ -20,4 +20,6 @@ path(
     "admin/conversation/<int:convo_id>/delete/",
     AdminDeleteConversationView.as_view()
 ),
+path("last-page/save/", SaveLastPageView.as_view()),
+    path("last-page/get/", GetLastPageView.as_view()),
 ]

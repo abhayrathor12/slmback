@@ -8,6 +8,7 @@ from .models import CustomUser, StudentProfile, ProfessionalProfile,UserCertific
 from rest_framework import serializers
 from .models import SupportConversation, SupportMessage
 
+
 class UserRegisterSerializer(serializers.ModelSerializer):
 
     password = serializers.CharField(write_only=True)
@@ -210,3 +211,13 @@ class UserCertificateSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.certificate_file.url)
             return obj.certificate_file.url
         return None
+    
+from rest_framework import serializers
+from .models import UserLastPage
+
+
+class UserLastPageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserLastPage
+        fields = ["page_id"]
+        

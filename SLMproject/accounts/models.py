@@ -128,3 +128,18 @@ class UserCertificate(models.Model):
 
     def __str__(self):
         return f"{self.user.email} Certificate {self.id}"
+    
+    
+class UserLastPage(models.Model):
+    user = models.OneToOneField(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name="last_page"
+    )
+
+    page_id = models.IntegerField()
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.email} - Page {self.page_id}"
