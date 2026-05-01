@@ -12,7 +12,7 @@ from .models import SupportConversation, SupportMessage
 class UserRegisterSerializer(serializers.ModelSerializer):
 
     password = serializers.CharField(write_only=True)
-
+    source = serializers.CharField(required=False, write_only=True)
     # student
     current_year = serializers.CharField(required=False)
     stream = serializers.CharField(required=False)
@@ -44,12 +44,15 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             "company",
             "city",
             "company_email",
+            "source", 
         ]
 
     def create(self, validated_data):
 
         password = validated_data.pop("password")
         role = validated_data.pop("role")
+
+        source = validated_data.pop("source", None)  # ✅ GET SOURCE
 
         student_data = {}
         professional_data = {}
@@ -82,8 +85,13 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
 
-        # ✅ Assign default topic (id = 10)
-        default_topic = Topic.objects.filter(id=10).first()
+        # ✅ NEW LOGIC (IMPORTANT)
+        if source == "ar":
+            topic_id = 11
+        else:
+            topic_id = 10
+
+        default_topic = Topic.objects.filter(id=topic_id).first()
         if default_topic:
             user.topics.add(default_topic)
 

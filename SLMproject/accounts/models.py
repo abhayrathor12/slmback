@@ -143,3 +143,5 @@ class UserLastPage(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - Page {self.page_id}"
+    
+    

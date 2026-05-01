@@ -22,4 +22,5 @@ path(
 ),
 path("last-page/save/", SaveLastPageView.as_view()),
     path("last-page/get/", GetLastPageView.as_view()),
+ 
 ]
