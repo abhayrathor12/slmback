@@ -15,6 +15,8 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from .models import Topic, Progress
 from django.http import HttpResponse
+
+
 class TopicViewSet(viewsets.ModelViewSet):
     queryset = Topic.objects.all()
     permission_classes = [permissions.IsAuthenticated]
