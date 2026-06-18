@@ -18,6 +18,8 @@ class CustomUser(AbstractUser):
 
     dob = models.DateField(blank=True, null=True)
 
+    module = models.CharField(max_length=100, null=True, blank=True)  # ✅ NEW: which module's registration page this signup came from
+
     is_active = models.BooleanField(default=False)
 
     USERNAME_FIELD = "email"   # ✅ login with email

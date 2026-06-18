@@ -8,11 +8,12 @@ from .models import CustomUser, StudentProfile, ProfessionalProfile,UserCertific
 from rest_framework import serializers
 from .models import SupportConversation, SupportMessage
 
-
 class UserRegisterSerializer(serializers.ModelSerializer):
 
     password = serializers.CharField(write_only=True)
     source = serializers.CharField(required=False, write_only=True)
+    module = serializers.CharField(required=False, allow_blank=True, allow_null=True)  # ✅ NEW
+
     # student
     current_year = serializers.CharField(required=False)
     stream = serializers.CharField(required=False)
@@ -45,9 +46,13 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             "city",
             "company_email",
             "source", 
+            "module",  # ✅ NEW
         ]
 
     def create(self, validated_data):
+        # `module` is a real field on CustomUser, so it's never popped out —
+        # it flows through **validated_data into CustomUser.objects.create() below,
+        # no extra handling needed.
 
         password = validated_data.pop("password")
         role = validated_data.pop("role")
@@ -105,11 +110,10 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return user
 
 
-
 class UserLoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
-
+    module = serializers.CharField(required=False)
     def validate(self, data):
 
         user = authenticate(
@@ -118,10 +122,24 @@ class UserLoginSerializer(serializers.Serializer):
         )
 
         if not user:
-            raise serializers.ValidationError("Invalid email or password")
+            raise serializers.ValidationError(
+                "Invalid email or password"
+            )
 
         if not user.is_active:
-            raise serializers.ValidationError("Account not active")
+            raise serializers.ValidationError(
+                "Account not active"
+            )
+
+        # Admin can login anywhere
+        if user.role != "admin":
+
+            login_module = data.get("module")
+
+            if user.module != login_module:
+                raise serializers.ValidationError(
+                    "You are trying to login from the wrong portal."
+                )
 
         data["user"] = user
         return data
